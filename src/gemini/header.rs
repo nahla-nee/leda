@@ -1,15 +1,18 @@
 use super::error::Error;
 
+#[derive(Clone)]
 pub enum InputCode {
     Input,
     Sensitive
 }
 
+#[derive(Clone)]
 pub enum RedirectCode {
     Temporary,
     Permanent
 }
 
+#[derive(Clone)]
 pub enum FailTemporaryCode {
     Temporary,
     ServerUnavailable,
@@ -18,6 +21,7 @@ pub enum FailTemporaryCode {
     SlowDown,
 }
 
+#[derive(Clone)]
 pub enum FailPermanentCode {
     Permanent,
     NotFound,
@@ -26,12 +30,14 @@ pub enum FailPermanentCode {
     BadRequest
 }
 
+#[derive(Clone)]
 pub enum CertFailCode {
     CertRequired,
     CertNotAuthorized,
     CertNotValid
 }
 
+#[derive(Clone)]
 pub enum StatusCode {
     Input(InputCode),
     Success,
@@ -41,6 +47,7 @@ pub enum StatusCode {
     CertFail(CertFailCode)
 }
 
+#[derive(Clone)]
 pub struct Header {
     pub status: StatusCode,
     pub meta: String
