@@ -8,6 +8,7 @@ use super::error::Error;
 use native_tls::TlsConnector;
 use url;
 
+#[derive(Clone)]
 pub struct Client {
     connector: TlsConnector
 }
