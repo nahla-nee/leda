@@ -121,29 +121,6 @@ impl TryFrom<String> for Header {
 }
 
 impl StatusCode {
-    pub fn to_string(&self) -> String {
-        match self {
-            StatusCode::Input(InputCode::Input) => String::from("10"),
-            StatusCode::Input(InputCode::Sensitive) => String::from("11"),
-            StatusCode::Success => String::from("20"),
-            StatusCode::Redirect(RedirectCode::Temporary) => String::from("30"),
-            StatusCode::Redirect(RedirectCode::Permanent) => String::from("31"),
-            StatusCode::FailTemporary(FailTemporaryCode::Temporary) => String::from("40"),
-            StatusCode::FailTemporary(FailTemporaryCode::ServerUnavailable) => String::from("41"),
-            StatusCode::FailTemporary(FailTemporaryCode::CGIError) => String::from("42"),
-            StatusCode::FailTemporary(FailTemporaryCode::ProxyError) => String::from("43"),
-            StatusCode::FailTemporary(FailTemporaryCode::SlowDown) => String::from("44"),
-            StatusCode::FailPermanent(FailPermanentCode::Permanent) => String::from("50"),
-            StatusCode::FailPermanent(FailPermanentCode::NotFound) => String::from("51"),
-            StatusCode::FailPermanent(FailPermanentCode::Gone) => String::from("52"),
-            StatusCode::FailPermanent(FailPermanentCode::ProxyRefused) => String::from("53"),
-            StatusCode::FailPermanent(FailPermanentCode::BadRequest) => String::from("59"),
-            StatusCode::CertFail(CertFailCode::CertRequired) => String::from("60"),
-            StatusCode::CertFail(CertFailCode::CertNotAuthorized) => String::from("61"),
-            StatusCode::CertFail(CertFailCode::CertNotValid) => String::from("62")
-        }
-    }
-
     pub fn from_string(input: &str) -> Result<StatusCode, Error> {
         Ok(match input {
             "10" => StatusCode::Input(InputCode::Input),
@@ -169,6 +146,33 @@ impl StatusCode {
                     input)
                 ))
         })
+    }
+}
+
+impl std::fmt::Display for StatusCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let val = match self {
+            StatusCode::Input(InputCode::Input) => "10",
+            StatusCode::Input(InputCode::Sensitive) => "11",
+            StatusCode::Success => "20",
+            StatusCode::Redirect(RedirectCode::Temporary) => "30",
+            StatusCode::Redirect(RedirectCode::Permanent) => "31",
+            StatusCode::FailTemporary(FailTemporaryCode::Temporary) => "40",
+            StatusCode::FailTemporary(FailTemporaryCode::ServerUnavailable) => "41",
+            StatusCode::FailTemporary(FailTemporaryCode::CGIError) => "42",
+            StatusCode::FailTemporary(FailTemporaryCode::ProxyError) => "43",
+            StatusCode::FailTemporary(FailTemporaryCode::SlowDown) => "44",
+            StatusCode::FailPermanent(FailPermanentCode::Permanent) => "50",
+            StatusCode::FailPermanent(FailPermanentCode::NotFound) => "51",
+            StatusCode::FailPermanent(FailPermanentCode::Gone) => "52",
+            StatusCode::FailPermanent(FailPermanentCode::ProxyRefused) => "53",
+            StatusCode::FailPermanent(FailPermanentCode::BadRequest) => "59",
+            StatusCode::CertFail(CertFailCode::CertRequired) => "60",
+            StatusCode::CertFail(CertFailCode::CertNotAuthorized) => "61",
+            StatusCode::CertFail(CertFailCode::CertNotValid) => "62"
+        };
+
+        write!(f, "{}", val)
     }
 }
 

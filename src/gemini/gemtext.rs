@@ -22,7 +22,7 @@ impl<'a> Gemtext<'a> {
         let mut preformatted_mode = false;
         for line in body.lines() {
             if preformatted_mode {
-                parsed.push(GemtextElement::Preformatted(&line))
+                parsed.push(GemtextElement::Preformatted(line))
             }
             else if line.starts_with("=>") {
                 let text = line.split_at(2).1.trim_start();
@@ -49,15 +49,15 @@ impl<'a> Gemtext<'a> {
                 let text = line.split_at(2).1.trim_start();
                 parsed.push(GemtextElement::Subheading(text))
             }
-            else if line.starts_with("#") {
+            else if line.starts_with('#') {
                 let text = line.split_at(1).1.trim_start();
                 parsed.push(GemtextElement::Heading(text))
             }
-            else if line.starts_with("*") {
+            else if line.starts_with('*') {
                 let text = line.split_at(1).1.trim_start();
                 parsed.push(GemtextElement::UnorederedListItem(text));
             }
-            else if line.starts_with(">") {
+            else if line.starts_with('>') {
                 let text = line.split_at(1).1.trim_start();
                 parsed.push(GemtextElement::BlockQuote(text));
             }

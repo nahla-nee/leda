@@ -16,7 +16,7 @@ pub enum Error {
     #[error("TCP connection error: {0}")]
     TCPConnect(io::Error),
     #[error("TLS handshake error: {0}")]
-    TLSHandshake(HandshakeError<std::net::TcpStream>),
+    TLSHandshake(Box<HandshakeError<std::net::TcpStream>>),
     #[error("Failed to create TLS connector: {0}")]
     TLSConnector(TLSError),
     #[error("Stream IO failure, {0}: {1}")]

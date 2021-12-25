@@ -17,8 +17,7 @@ impl Client {
     pub fn new() -> Result<Client, Error> {
         let connector = TlsConnector::builder()
             .danger_accept_invalid_certs(true)
-            .build()
-            .or_else(|e| Err(Error::TLSConnector(e)))?;
+            .build().map_err(Error::TLSConnector)?;
 
         Ok(Client{
             connector
@@ -36,7 +35,7 @@ impl Client {
         // Get the proper host string to connect to from the URL.
         let host = {
             let url_parsed = url::Url::parse(&url)
-                .or_else(|e| Err(Error::UrlParse(e)))?;
+                .map_err(Error::UrlParse)?;
             // We can't use ok_or_else here because that would consume `url` regardless of whether
             // the value is Some or None, and we use url later so it most not be moved.
             let host_str = match url_parsed.host_str() {
@@ -50,24 +49,24 @@ impl Client {
 
         // Connect to the server and establish a TLS connection.
         let stream = TcpStream::connect(&host)
-            .or_else(|e| Err(Error::TCPConnect(e)))?;
+            .map_err(Error::TCPConnect)?;
         let mut stream = self.connector.connect(&host, stream)
-            .or_else(|e| Err(Error::TLSHandshake(e)))?;
+            .map_err(|e| Error::TLSHandshake(Box::new(e)))?;
 
         // Check that the URL given to us is proper, the Gemini protocol specifies all URL requests
         // must end in <CR><LF>.
         if !url.ends_with("\r\n") {
-            url = url + "\r\n";
+            url += "\r\n";
         }
 
         stream.write_all(url.as_bytes())
-            .or_else(|e| Err(Error::StreamIO("Failed to send request to server", e)))?;
+            .map_err(|e| Error::StreamIO("Failed to send request to server", e))?;
     
         // We can't parse this as a string yet, we can be confident-ish that the header is UTF-8,
         // but we have no idea what the body is.
         let mut response = Vec::new();
         stream.read_to_end(&mut response)
-            .or_else(|e| Err(Error::StreamIO("Failed to read resposne from server", e)))?;
+            .map_err(|e| Error::StreamIO("Failed to read resposne from server", e))?;
 
 
         // The Gemini protocol specifies that the response must have a header, and optionally a body
@@ -83,13 +82,13 @@ impl Client {
             }
 
             cutoff
-        }.ok_or(Error::HeaderFormat(
+        }.ok_or_else(|| Error::HeaderFormat(
             String::from("There must be at least 1 <CR><LF> at the end of the header, but such a
             sequence was not found not found.")
         ))?;
 
         let (header, body) = response.split_at(header_cutoff);
-        let header = String::from_utf8_lossy(&header).to_string();
+        let header = String::from_utf8_lossy(header).to_string();
         // Even if a body doesn't exist, rust will return an empty string for the body, we should
         // check then if a body does or doesn't exist by checking if the body string is empty.
         let body = if body.is_empty() {
@@ -99,7 +98,7 @@ impl Client {
             Some(body.to_vec())
         };
 
-        stream.shutdown().or_else(|e| Err(Error::StreamIO("Failed to shutdown TCP stream", e)))?;
+        stream.shutdown().map_err(|e| Error::StreamIO("Failed to shutdown TCP stream", e))?;
 
         Ok((header, body))
     }
