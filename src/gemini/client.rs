@@ -8,7 +8,11 @@ use super::error::Error;
 use native_tls::TlsConnector;
 use url;
 
+#[cfg(feature = "py_bindings")]
+use pyo3::prelude::*;
+
 #[derive(Clone)]
+#[cfg_attr(all(feature = "py_bindings"), pyclass())]
 pub struct Client {
     connector: TlsConnector
 }
@@ -101,5 +105,19 @@ impl Client {
         stream.shutdown().map_err(|e| Error::StreamIO("Failed to shutdown TCP stream", e))?;
 
         Ok((header, body))
+    }
+}
+
+#[cfg(feature = "py_bindings")]
+#[pymethods]
+impl Client {
+    #[new]
+    pub fn __new__() -> Result<Client, Error> {
+        Client::new()
+    }
+
+    #[pyo3(name = "request")]
+    pub fn py_request(&self, url: String) -> Result<Response, Error> {
+        self.request(url)
     }
 }

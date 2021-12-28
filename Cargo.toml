@@ -3,9 +3,11 @@ name = "leda"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+py_bindings = ["pyo3"]
 
 [dependencies]
 native-tls = "0.2.8"
 url = "2.2.2"
 thiserror = "1.0.30"
+pyo3 = { version = "0.15.1", optional = true }
