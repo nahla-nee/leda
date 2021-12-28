@@ -24,8 +24,11 @@ impl Response {
 #[pymethods]
 impl Response {
     #[getter(header)]
-    pub fn py_header(&self) -> PyResult<Header> {
-        Ok(self.header.clone())
+    pub fn py_header(&self) -> PyResult<(u32, String)> {
+        let status = self.header.status.to_string().parse().unwrap();
+        let meta = self.header.meta.clone();
+
+        Ok((status, meta))
     }
 
     #[getter(body)]

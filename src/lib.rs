@@ -5,10 +5,19 @@ use pyo3::prelude::*;
 
 #[cfg(feature = "py_bindings")]
 #[pymodule]
-fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
+fn gemini(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<gemini::Client>()?;
     m.add_class::<gemini::Response>()?;
-    m.add_class::<gemini::Header>()?;
+
+    Ok(())
+}
+
+#[cfg(feature = "py_bindings")]
+use pyo3::wrap_pymodule;
+#[cfg(feature = "py_bindings")]
+#[pymodule]
+fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pymodule!(gemini))?;
 
     Ok(())
 }

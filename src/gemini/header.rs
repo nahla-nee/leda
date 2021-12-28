@@ -47,11 +47,7 @@ pub enum StatusCode {
     CertFail(CertFailCode)
 }
 
-#[cfg(feature="py_bindings")]
-use pyo3::prelude::*;
-
 #[derive(Clone)]
-#[cfg_attr(all(feature="py_bindings"), pyclass())]
 pub struct Header {
     pub status: StatusCode,
     pub meta: String
