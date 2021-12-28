@@ -8,6 +8,7 @@ use pyo3::prelude::*;
 fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<gemini::Client>()?;
     m.add_class::<gemini::Response>()?;
+    m.add_class::<gemini::Header>()?;
 
     Ok(())
 }
