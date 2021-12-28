@@ -1,5 +1,17 @@
 pub mod gemini;
 
+#[cfg(feature = "py_bindings")]
+use pyo3::prelude::*;
+
+#[cfg(feature = "py_bindings")]
+#[pymodule]
+fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<gemini::Client>()?;
+    m.add_class::<gemini::Response>()?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::gemini::Gemtext;
