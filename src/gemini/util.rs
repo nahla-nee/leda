@@ -22,7 +22,8 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
             }
 
             let text = line.trim_start();
-            parsed += &format!("<li>{}</li>", text);
+            parsed += &format!("<li>{}</li>\n", text);
+            continue;
         }
         else if in_list {
             parsed += "</ul>\n";
@@ -48,15 +49,15 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
         }
         else if let Some(line) = line.strip_prefix("###") {
             let text = line.trim_start();
-            parsed += &format!("<h3>{}<h3>", text);
+            parsed += &format!("<h3>{}</h3>", text);
         }
         else if let Some(line) = line.strip_prefix("##") {
             let text = line.trim_start();
-            parsed += &format!("<h2>{}<h2>", text);
+            parsed += &format!("<h2>{}</h2>", text);
         }
         else if let Some(line) = line.strip_prefix('#') {
             let text = line.trim_start();
-            parsed += &format!("<h1>{}<h1>", text);
+            parsed += &format!("<h1>{}</h1>", text);
         }
         else if let Some(line) = line.strip_prefix('>') {
             let text = line.trim_start();
