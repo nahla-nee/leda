@@ -24,7 +24,7 @@ fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::gemini::Gemtext;
+    use crate::gemini::gemtext_to_html;
 
     use super::gemini;
 
@@ -33,15 +33,17 @@ mod tests {
         let client = gemini::Client::new()
             .expect("Failed to create gemini client");
 
-        let url = String::from("gemini://gemini.conman.org/test/torture/");
+        let url = String::from("gemini://gemini.circumlunar.space/");
         let response = client.request(url)
             .expect("Failed to retrieve gemini page");
 
         let body = &response.body.expect("Body was none!");
         let body = std::str::from_utf8(body)
             .expect("Failed to parse body as utf8");
-        let _gemtext = Gemtext::new(&body);
+        let gemtext = gemtext_to_html(&body)
+            .expect("Failed to parse gemtext");
 
-        println!("body:{}\n", body)
+        println!("body:\n{}\n", body);
+        println!("html body:\n{}\n", gemtext);
     }
 }

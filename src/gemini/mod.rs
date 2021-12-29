@@ -2,7 +2,7 @@ pub mod client;
 pub mod header;
 pub mod response;
 pub mod error;
-mod util;
+pub mod util;
 
 pub use client::Client;
 pub use header::Header;

@@ -1,9 +1,5 @@
 use super::Error;
 
-#[cfg(feature = "py_bindings")]
-use pyo3::prelude::*;
-
-#[cfg_attr(all(feature = "py_bindings"), pyfunction)]
 pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
     let mut parsed = String::with_capacity(gemtext.len());
 
