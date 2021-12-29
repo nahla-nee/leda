@@ -37,7 +37,8 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
             }
 
             let (url, text) = if let Some(index) = text.find(char::is_whitespace) {
-                text.split_at(index)
+                let (url, text) = text.split_at(index);
+                (url, text.trim_start())
             }
             else {
                 (text, text)
