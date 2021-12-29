@@ -78,7 +78,7 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
             parsed += &format!("<p>{}</p>", line);
         }
 
-        parsed += "</br>\n";
+        parsed += "<br>\n";
     }
 
     parsed.shrink_to_fit();
