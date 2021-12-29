@@ -77,7 +77,8 @@ impl TryFrom<String> for Header {
         let space_index = 2;
         // Check if space is where it should be and split on it
         let (status, meta) = if header.chars().nth(space_index).unwrap() == ' ' {
-            header.split_at(space_index)
+            // we don't want to split at the header index because then it will include the space in the meta info
+            (&header[0..2], &header[3..])
         }
         else {
             return Err(Error::HeaderFormat(
