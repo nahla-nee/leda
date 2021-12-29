@@ -19,7 +19,9 @@ pub enum Error {
     #[error("Failed to create TLS connector: {0}")]
     TLSConnector(TLSError),
     #[error("Stream IO failure, {0}: {1}")]
-    StreamIO(&'static str, io::Error)
+    StreamIO(&'static str, io::Error),
+    #[error("Malformed gemtext document: {0}")]
+    GemtextFormat(String)
 }
 
 #[cfg(feature = "py_bindings")]
@@ -29,7 +31,8 @@ use pyo3::{prelude::*, exceptions::{PyIOError, PyValueError}};
 impl std::convert::From<Error> for PyErr {
     fn from(err: Error) -> Self {
         match err {
-            Error::HeaderFormat(_) | Error::UrlParse(_) | Error::UrlNoHost(_) => {
+            Error::HeaderFormat(_) | Error::UrlParse(_) | Error::UrlNoHost(_) |
+            Error::GemtextFormat(_) => {
                 PyValueError::new_err(err.to_string())
             },
             Error::TCPConnect(_) | Error::TLSHandshake(_) | Error::TLSConnector(_) |
