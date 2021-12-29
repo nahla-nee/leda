@@ -8,6 +8,10 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
     let mut in_list = false;
     for line in gemtext.lines() {
         if preformatted_mode {
+            if line.starts_with("```") {
+                preformatted_mode = false;
+            }
+
             parsed += line;
             parsed += "\n";
             continue;
@@ -16,6 +20,7 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
         // we have to place this first and make it a separate if block because we have to end the
         // list if we already started it and the new line isnt a list item
         if let Some(line) = line.strip_prefix('*') {
+            // we actually don't want <br> here because list items already get their lines broken
             if !in_list {
                 parsed += "<ul>\n";
                 in_list = true;
@@ -64,15 +69,12 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
             parsed += &format!("<blockquote>{}</blockquote>", text);
         }
         else if line.starts_with("```") {
-            preformatted_mode = !preformatted_mode;
+            preformatted_mode = true;
 
-            if preformatted_mode {
-                parsed += "<pre>\n";
-                parsed += line;
-            }
-            else {
-                parsed += "</pre>"
-            }
+            parsed += "<pre>\n";
+            parsed += line;
+
+            continue;
         }
         else if !line.is_empty() {
             parsed += &format!("<p>{}</p>", line);
