@@ -4,10 +4,18 @@ pub mod gemini;
 use pyo3::prelude::*;
 
 #[cfg(feature = "py_bindings")]
+#[pyfunction]
+#[pyo3(name = "gemtext_to_html")]
+pub fn py_gemtext_to_html(gemtext: String) -> Result<String, gemini::Error> {
+    gemini::util::gemtext_to_html(&gemtext)
+}
+
+#[cfg(feature = "py_bindings")]
 #[pymodule]
 fn gemini(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<gemini::Client>()?;
     m.add_class::<gemini::Response>()?;
+    m.add_function(wrap_pyfunction!(py_gemtext_to_html, m)?)?;
 
     Ok(())
 }
