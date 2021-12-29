@@ -33,10 +33,12 @@ mod tests {
         let client = gemini::Client::new()
             .expect("Failed to create gemini client");
 
-        let url = String::from("gemini://gemini.circumlunar.space/");
+        let url = String::from("gemini://gemini.conman.org/test/torture/");
         let response = client.request(url)
             .expect("Failed to retrieve gemini page");
-        let body = std::str::from_utf8(&response.body.as_ref().unwrap())
+
+        let body = &response.body.expect("Body was none!");
+        let body = std::str::from_utf8(body)
             .expect("Failed to parse body as utf8");
         let _gemtext = Gemtext::new(&body);
 
