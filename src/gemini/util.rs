@@ -74,11 +74,11 @@ pub fn gemtext_to_html(gemtext: &str) -> Result<String, Error> {
                 parsed += "</pre>"
             }
         }
-        else {
+        else if !line.is_empty() {
             parsed += &format!("<p>{}</p>", line);
         }
 
-        parsed += "\n";
+        parsed += "</br>\n";
     }
 
     parsed.shrink_to_fit();
