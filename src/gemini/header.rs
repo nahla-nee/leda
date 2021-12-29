@@ -60,20 +60,10 @@ impl TryFrom<String> for Header {
         // The proper format of a header is `<STATUS><SPACE><META><CR><LF>`.
         // We must check everything is properly formatted before we interpret any part of it.
 
-        // The checking involves splitting the string, let's make sure it's long enough first.
-        // <STATUS> is always 2 integers which is 2 bytes, <SPACE> is defined as 0x20, one byte,
-        // <META> must be at least 1 byte, and then <CR> is 1 byte, and <LF> is 1 byte.
-        let minimum_length = 6;
-        if header.len() < minimum_length {
-            return Err(Error::HeaderFormat(
-                format!(
-                "Header is too small, minimum size is {} bytes but the actual size was {} bytes",
-                minimum_length, header.len())
-                )
-            )
-        }
+        // The checking involves splitting the string <STATUS> is always 2 integers which is 2
+        // bytes, <SPACE> is defined as 0x20, one byte, <META> must be at least 1 byte, and
+        // then <CR> is 1 byte, and <LF> is 1 byte.
 
-        // See above comment for why this index is 2
         let space_index = 2;
         // Check if space is where it should be and split on it
         let (status, meta) = if header.chars().nth(space_index).unwrap() == ' ' {
@@ -82,16 +72,14 @@ impl TryFrom<String> for Header {
         }
         else {
             return Err(Error::HeaderFormat(
-                String::from("Failed to find initial whitespace separating <STATUS>
-                and <META>, or it isn't where it should be")
+                format!("Missing space after status, provided header: {}", header)
             ))
         };
 
         // The status code must be two integers, no more no less.
         if status.len() != 2 {
             return Err(Error::HeaderFormat(
-                format!("The header must be exactly two integers, the header provided ({}), is not",
-                status)
+                format!("The status must be exactly two integers, provided header: {}", header)
             ))
         }
         // The status meta info must end in "\r\n".
