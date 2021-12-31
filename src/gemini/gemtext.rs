@@ -92,15 +92,15 @@ pub struct PyGemtext {
 
 
 #[cfg(feature = "py_bindings")]
-#[pyclass]
+#[pyclass(name = "GemtextElement")]
 #[derive(Clone)]
 pub struct PyGemtextElement {
     #[pyo3(get)]
-    format: u32,
+    format: u32, // pyo3 doesn't have great enum representation so python just has to deal with u32
     #[pyo3(get)]
     value: String,
     #[pyo3(get)]
-    link_text: Option<String> // only Some if GemtextElement is a Link
+    link_text: Option<String> // only Some if format is a Link
 }
 
 #[cfg(feature = "py_bindings")]
