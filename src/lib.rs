@@ -27,8 +27,6 @@ fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::gemini::gemtext_to_html;
-
     use super::gemini;
 
     #[test]
@@ -43,10 +41,9 @@ mod tests {
         let body = &response.body.expect("Body was none!");
         let body = std::str::from_utf8(body)
             .expect("Failed to parse body as utf8");
-        let gemtext = gemtext_to_html(&body)
-            .expect("Failed to parse gemtext");
+        let gemtext = gemini::Gemtext::new(body)
+            .expect("Failed to parse body as gemtext");
 
         println!("body:\n{}\n", body);
-        println!("html body:\n{}\n", gemtext);
     }
 }
