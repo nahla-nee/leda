@@ -4,7 +4,7 @@ use super::Header;
 use pyo3::prelude::*;
 
 #[derive(Clone)]
-#[cfg_attr(all(feature = "py_bindings"), pyclass())]
+#[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Response {
     pub header: Header,
     pub body: Option<Vec<u8>>

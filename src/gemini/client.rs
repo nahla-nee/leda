@@ -12,7 +12,7 @@ use url;
 use pyo3::prelude::*;
 
 #[derive(Clone)]
-#[cfg_attr(all(feature = "py_bindings"), pyclass())]
+#[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Client {
     connector: TlsConnector
 }
