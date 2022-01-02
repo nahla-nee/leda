@@ -12,6 +12,8 @@ pub enum Error {
     UrlParse(ParseError),
     #[error("The given URL didn't have a host: {0}")]
     UrlNoHost(String),
+    #[error("The URL couldn't be resolved to an address: {0}")]
+    UrlNoAddress(String),
     #[error("TCP connection error: {0}")]
     TCPConnect(io::Error),
     #[error("TLS handshake error: {0}")]
@@ -32,7 +34,7 @@ impl std::convert::From<Error> for PyErr {
     fn from(err: Error) -> Self {
         match err {
             Error::HeaderFormat(_) | Error::UrlParse(_) | Error::UrlNoHost(_) |
-            Error::GemtextFormat(_) => {
+            Error::GemtextFormat(_) | Error::UrlNoAddress(_) => {
                 PyValueError::new_err(err.to_string())
             },
             Error::TCPConnect(_) | Error::TLSHandshake(_) | Error::TLSConnector(_) |

@@ -1,5 +1,6 @@
-use std::net::TcpStream;
+use std::net::{TcpStream, ToSocketAddrs};
 use std::io::{Write, Read};
+use std::time::Duration;
 
 use super::response::Response;
 use super::header::Header;
@@ -14,7 +15,8 @@ use pyo3::prelude::*;
 #[derive(Clone)]
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Client {
-    connector: TlsConnector
+    connector: TlsConnector,
+    timeout: Option<Duration>
 }
 
 impl Client {
@@ -24,8 +26,24 @@ impl Client {
             .build().map_err(Error::TLSConnector)?;
 
         Ok(Client{
-            connector
+            connector,
+            timeout: None
         })
+    }
+
+    pub fn with_timeout(timeout: Duration) -> Result<Client, Error> {
+        let connector = TlsConnector::builder()
+            .danger_accept_invalid_certs(true)
+            .build().map_err(Error::TLSConnector)?;
+
+        Ok(Client{
+            connector,
+            timeout: Some(timeout)
+        })
+    }
+
+    pub fn set_timeout(&mut self, timeout: Option<Duration>) {
+        self.timeout = timeout;
     }
 
     pub fn request(&self, url: String) -> Result<Response, Error> {
@@ -52,8 +70,30 @@ impl Client {
         };
 
         // Connect to the server and establish a TLS connection.
-        let stream = TcpStream::connect(&host)
-            .map_err(Error::TCPConnect)?;
+        let stream = if let Some(timeout) = self.timeout {
+            let addrs = host.to_socket_addrs()
+                .map_err(Error::TCPConnect)?;
+            let mut addrs: Vec<_> = addrs.collect();
+            if addrs.len() == 0 {
+                return Err(Error::UrlNoAddress(host));
+            }
+
+
+            let tail = addrs.pop().unwrap();
+            let head = addrs.into_iter()
+                .map(|addr| TcpStream::connect_timeout(&addr, timeout))
+                .find(|c| c.is_ok());
+            if let Some(x) = head {
+                x
+            } else {
+                TcpStream::connect_timeout(&tail, timeout)
+            }.map_err(Error::TCPConnect)
+        }
+        else {
+            TcpStream::connect(&host)
+                .map_err(Error::TCPConnect)
+        }?;
+
         let mut stream = self.connector.connect(&host, stream)
             .map_err(|e| Error::TLSHandshake(Box::new(e)))?;
 
@@ -114,6 +154,11 @@ impl Client {
     #[new]
     pub fn __new__() -> Result<Client, Error> {
         Client::new()
+    }
+
+    #[pyo3(name = "set_timeout")]
+    pub fn py_set_timeout(&mut self, seconds: u64) {
+        self.timeout = Some(Duration::from_secs(seconds));
     }
 
     #[pyo3(name = "request")]
