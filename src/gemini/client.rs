@@ -158,7 +158,12 @@ impl Client {
 
     #[pyo3(name = "set_timeout")]
     pub fn py_set_timeout(&mut self, seconds: u64) {
-        self.timeout = Some(Duration::from_secs(seconds));
+        if seconds == 0 {
+            self.timeout = None
+        }
+        else {
+            self.timeout = Some(Duration::from_secs(seconds));
+        }
     }
 
     #[pyo3(name = "request")]
