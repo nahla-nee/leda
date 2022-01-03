@@ -23,11 +23,9 @@ impl<'a> Gemtext<'a> {
     pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
 
-        let lines: Vec<_> = input.split_inclusive('\n').collect();
-
-        let mut i = 0;
-        while i < lines.len() {
-            if let Some(line) = lines[i].strip_prefix("=>") {
+        let mut lines = input.lines();
+        while let Some(line) = lines.next() {
+            if let Some(line) = line.strip_prefix("=>") {
                 let text = line.trim_start();
                 if text.is_empty() {
                     // invalid link has no value.
@@ -45,56 +43,121 @@ impl<'a> Gemtext<'a> {
 
                 elements.push(GemtextElement::Link(url, text));
             }
-            else if let Some(line) = lines[i].strip_prefix("###") {
+            else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Subsubheading(text))
             }
-            else if let Some(line) = lines[i].strip_prefix("##") {
+            else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Subheading(text))
             }
-            else if let Some(line) = lines[i].strip_prefix('#') {
+            else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Heading(text))
             }
-            else if let Some(line) = lines[i].strip_prefix('*') {
+            else if let Some(line) = line.strip_prefix('*') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::UnorederedListItem(text));
             }
-            else if let Some(line) = lines[i].strip_prefix('>') {
+            else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::BlockQuote(text));
             }
-            else if let Some(line) = lines[i].strip_prefix("```") {
+            else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
                 let mut len = line.len();
 
-                loop {
-                    i += 1;
-
-                    if let Some(_) = lines[i].strip_prefix("```") {
+                while let Some(line) = lines.next() {
+                    if let Some(_) = line.strip_prefix("```") {
                         break;
                     }
 
-                    len += lines[i].len();
+                    len += line.len();
                 }
 
                 let text = unsafe {
                     let str_slice = slice::from_raw_parts(start, len);
                     std::str::from_utf8_unchecked(str_slice)
                 };
+
                 elements.push(GemtextElement::Preformatted(text))
             }
             else {
-                elements.push(GemtextElement::Text(lines[i]));
+                elements.push(GemtextElement::Text(line));
             }
-
-            i += 1;
         }
 
         Ok(Gemtext {
             elements
         })
+    }
+
+    pub fn parse_to_html(input: &'a str) -> Result<String, Error> {
+        let gemtext = Self::new(input)?;
+        // This allocation will be a bit too short but should be close enough to only result in
+        // one or two reallocations at most
+        let mut result = String::with_capacity(input.len());
+
+        let mut elements = gemtext.elements.into_iter().peekable();
+        while let Some(element) = elements.next() {
+            match element {
+                GemtextElement::Text(text) => {
+                    result += "<p>";
+                    result += text;
+                    result += "</p>\n";
+                },
+                GemtextElement::Link(link, text) => {
+                    result += "<a href=\"";
+                    result += link;
+                    result += "\">";
+                    result += text;
+                    result += "</a>\n<p></p>\n"
+                },
+                GemtextElement::Heading(text) => {
+                    result += "<h1>";
+                    result += text;
+                    result += "</h1>\n<p></p>\n";
+                },
+                GemtextElement::Subheading(text) => {
+                    result += "<h2>";
+                    result += text;
+                    result += "</h2>\n<p></p>\n";
+                },
+                GemtextElement::Subsubheading(text) => {
+                    result += "<h3>";
+                    result += text;
+                    result += "</h3>\n<p></p>\n";
+                },
+                GemtextElement::UnorederedListItem(text) => {
+                    result += "<ul>\n";
+
+                    result += "<li>";
+                    result += text;
+                    result += "</li>\n<p></p>\n";
+                    while let Some(GemtextElement::UnorederedListItem(item)) = elements.peek() {
+                        result += "<li>";
+                        result += *item;
+                        result += "</li>\n<p></p>\n";
+
+                        elements.next();
+                    }
+
+                    result += "</ul>\n<p></p>\n";
+                },
+                GemtextElement::BlockQuote(text) => {
+                    result += "<blockquote>";
+                    result += text;
+                    result += "</blockquote>\n<p></p>\n";
+                },
+                GemtextElement::Preformatted(text) => {
+                    result += "<pre>";
+                    result += text;
+                    result += "</pre>\n<p></p>\n";
+                },
+            }
+        }
+
+        Ok(result)
     }
 }
 
@@ -148,6 +211,11 @@ impl PyGemtext {
         Ok(PyGemtext{
             elements
         })
+    }
+
+    #[staticmethod]
+    pub fn parse_to_html(input: &str) -> Result<String, Error> {
+        Gemtext::parse_to_html(input)
     }
 }
 
