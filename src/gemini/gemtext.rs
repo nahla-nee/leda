@@ -1,9 +1,11 @@
+use core::slice;
+
 use super::Error;
 
 // User facing, we never read from parsed oursevles.
 #[allow(dead_code)]
 pub struct Gemtext <'a>{
-    elements: Vec<GemtextElement<'a>>
+    pub elements: Vec<GemtextElement<'a>>
 }
 
 pub enum GemtextElement<'a> {
@@ -21,17 +23,16 @@ impl<'a> Gemtext<'a> {
     pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
 
-        let mut preformatted_mode = false;
-        for line in input.lines() {
-            if preformatted_mode {
-                elements.push(GemtextElement::Preformatted(line))
-            }
-            else if let Some(line) = line.strip_prefix("=>") {
+        let lines: Vec<_> = input.split_inclusive('\n').collect();
+
+        let mut i = 0;
+        while i < lines.len() {
+            if let Some(line) = lines[i].strip_prefix("=>") {
                 let text = line.trim_start();
                 if text.is_empty() {
                     // invalid link has no value.
                     return Err(Error::GemtextFormat(format!("Invalid link format, there must be \
-                    something after =>. Line: {}", line.trim())));
+                        something after =>. Line: {}", line.trim())));
                 }
 
                 let (url, text) = if let Some(index) = text.find(char::is_whitespace) {
@@ -44,33 +45,51 @@ impl<'a> Gemtext<'a> {
 
                 elements.push(GemtextElement::Link(url, text));
             }
-            else if let Some(line) = line.strip_prefix("###") {
+            else if let Some(line) = lines[i].strip_prefix("###") {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Subsubheading(text))
             }
-            else if let Some(line) = line.strip_prefix("##") {
+            else if let Some(line) = lines[i].strip_prefix("##") {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Subheading(text))
             }
-            else if let Some(line) = line.strip_prefix('#') {
+            else if let Some(line) = lines[i].strip_prefix('#') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::Heading(text))
             }
-            else if let Some(line) = line.strip_prefix('*') {
+            else if let Some(line) = lines[i].strip_prefix('*') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::UnorederedListItem(text));
             }
-            else if let Some(line) = line.strip_prefix('>') {
+            else if let Some(line) = lines[i].strip_prefix('>') {
                 let text = line.trim_start();
                 elements.push(GemtextElement::BlockQuote(text));
             }
-            else if let Some(line) = line.strip_prefix("```") {
-                preformatted_mode = !preformatted_mode;
-                elements.push(GemtextElement::Preformatted(line))
+            else if let Some(line) = lines[i].strip_prefix("```") {
+                let start = line.as_ptr();
+                let mut len = line.len();
+
+                loop {
+                    i += 1;
+
+                    if let Some(_) = lines[i].strip_prefix("```") {
+                        break;
+                    }
+
+                    len += lines[i].len();
+                }
+
+                let text = unsafe {
+                    let str_slice = slice::from_raw_parts(start, len);
+                    std::str::from_utf8_unchecked(str_slice)
+                };
+                elements.push(GemtextElement::Preformatted(text))
             }
             else {
-                elements.push(GemtextElement::Text(line));
+                elements.push(GemtextElement::Text(lines[i]));
             }
+
+            i += 1;
         }
 
         Ok(Gemtext {
