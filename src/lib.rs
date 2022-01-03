@@ -27,14 +27,15 @@ fn leda(_py: Python, m: &PyModule) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
     use super::gemini;
 
     #[test]
     fn it_works() {
-        let client = gemini::Client::new()
+        let client = gemini::Client::with_timeout(Duration::from_secs(5))
             .expect("Failed to create gemini client");
 
-        let url = String::from("gemini://mozz.us/");
+        let url = String::from("gemini://gemini.space/");
         let response = client.request(url)
             .expect("Failed to retrieve gemini page");
 
