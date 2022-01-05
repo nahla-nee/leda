@@ -1,8 +1,7 @@
 use std::io;
 use thiserror::Error;
 use url::ParseError;
-use native_tls::Error as TLSError;
-use native_tls::HandshakeError;
+use webpki;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -14,12 +13,12 @@ pub enum Error {
     UrlNoHost(String),
     #[error("The URL couldn't be resolved to an address: {0}")]
     UrlNoAddress(String),
+    #[error("Failed to create TLS client: {0}")]
+    TLSClient(io::Error),
+    #[error("Failed to add certificate to client config: {0}")]
+    TLSCert(webpki::Error),
     #[error("TCP connection error: {0}")]
     TCPConnect(io::Error),
-    #[error("TLS handshake error: {0}")]
-    TLSHandshake(Box<HandshakeError<std::net::TcpStream>>),
-    #[error("Failed to create TLS connector: {0}")]
-    TLSConnector(TLSError),
     #[error("Stream IO failure, {0}: {1}")]
     StreamIO(&'static str, io::Error),
     #[error("Malformed gemtext document: {0}")]
@@ -37,8 +36,8 @@ impl std::convert::From<Error> for PyErr {
             Error::GemtextFormat(_) | Error::UrlNoAddress(_) => {
                 PyValueError::new_err(err.to_string())
             },
-            Error::TCPConnect(_) | Error::TLSHandshake(_) | Error::TLSConnector(_) |
-            Error::StreamIO(_, _) => {
+            Error::TCPConnect(_) | Error::TLSClient(_) | Error::StreamIO(_, _) |
+            Error::TLSCert(_) => {
                 PyIOError::new_err(err.to_string())
             }
         }

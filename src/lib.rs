@@ -32,10 +32,10 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let client = gemini::Client::with_timeout(Duration::from_secs(5))
+        let mut client = gemini::Client::with_timeout(Duration::from_secs(5))
             .expect("Failed to create gemini client");
 
-        let url = String::from("gemini://gemini.space/");
+        let url = String::from("gemini://gemini.circumlunar.space/");
         let response = client.request(url)
             .expect("Failed to retrieve gemini page");
 
