@@ -31,7 +31,7 @@ mod tests {
     use super::gemini;
 
     #[test]
-    fn it_works() {
+    fn full_test() {
         let mut client = gemini::Client::with_timeout(Duration::from_secs(5))
             .expect("Failed to create gemini client");
 

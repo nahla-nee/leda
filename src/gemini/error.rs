@@ -1,7 +1,6 @@
 use std::io;
 use thiserror::Error;
 use url::ParseError;
-use webpki;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -14,9 +13,7 @@ pub enum Error {
     #[error("The URL couldn't be resolved to an address: {0}")]
     UrlNoAddress(String),
     #[error("Failed to create TLS client: {0}")]
-    TLSClient(io::Error),
-    #[error("Failed to add certificate to client config: {0}")]
-    TLSCert(webpki::Error),
+    TLSClient(openssl::error::ErrorStack),
     #[error("TCP connection error: {0}")]
     TCPConnect(io::Error),
     #[error("Stream IO failure, {0}: {1}")]
@@ -36,8 +33,7 @@ impl std::convert::From<Error> for PyErr {
             Error::GemtextFormat(_) | Error::UrlNoAddress(_) => {
                 PyValueError::new_err(err.to_string())
             },
-            Error::TCPConnect(_) | Error::TLSClient(_) | Error::StreamIO(_, _) |
-            Error::TLSCert(_) => {
+            Error::TCPConnect(_) | Error::TLSClient(_) | Error::StreamIO(_, _) => {
                 PyIOError::new_err(err.to_string())
             }
         }

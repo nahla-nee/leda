@@ -11,9 +11,7 @@ crate-type = ["lib", "cdylib"]
 py_bindings = ["pyo3"]
 
 [dependencies]
-rustls = { version = "0.20.2", features = ["dangerous_configuration"] }
-rustls-native-certs = "0.6.1"
-webpki = "0.22.0"
+openssl = { version = "0.10", features = ["vendored"] }
 url = "2.2.2"
 thiserror = "1.0.30"
 pyo3 = { version = "0.15.1", optional = true }

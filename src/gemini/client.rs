@@ -1,64 +1,33 @@
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
-use std::sync::Arc;
 use std::time::Duration;
 
 use super::response::Response;
 use super::header::Header;
 use super::error::Error;
 
-use rustls;
-use rustls_native_certs;
 use url;
+
+use openssl::ssl;
 
 #[cfg(feature = "py_bindings")]
 use pyo3::prelude::*;
 
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Client {
-    client_config: Arc<rustls::ClientConfig>,
+    connector: ssl::SslConnector,
     timeout: Option<Duration>
 }
 
-struct NoCertVerifier {}
-
-impl rustls::client::ServerCertVerifier for NoCertVerifier {
-    fn verify_server_cert(
-        &self,
-        _: &rustls::Certificate,
-        _: &[rustls::Certificate],
-        _: &rustls::ServerName,
-        _: &mut dyn Iterator<Item = &[u8]>,
-        _: &[u8],
-        _: std::time::SystemTime,
-    ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
-        Ok(rustls::client::ServerCertVerified::assertion())
-    }
-}
-
-
 impl Client {
     pub fn new() -> Result<Client, Error> {
-        let mut root_store = rustls::RootCertStore::empty();
-        let native_roots = rustls_native_certs::load_native_certs()
+        let mut builder = ssl::SslConnector::builder(ssl::SslMethod::tls())
             .map_err(Error::TLSClient)?;
-        for cert in native_roots {
-            root_store.add(&rustls::Certificate(cert.0))
-                .map_err(Error::TLSCert)?;
-        }
-
-        let cert_verifier = Arc::new(NoCertVerifier {});
-
-        let mut client_config = rustls::ClientConfig::builder()
-            .with_safe_defaults()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-        client_config.dangerous().set_certificate_verifier(cert_verifier);
-
-        let client_config = Arc::new(client_config);
+        builder.set_verify(ssl::SslVerifyMode::NONE);
+        let connector = builder.build();
 
         Ok(Client {
-            client_config,
+            connector,
             timeout: None
         })
     }
@@ -98,10 +67,7 @@ impl Client {
         };
 
         // Connect to the server and establish a TLS connection.
-        let server_name = (&server_name as &str).try_into().unwrap();
-        let mut tls_conn = rustls::ClientConnection::new(self.client_config.clone(), server_name)
-            .expect("failed to connect");
-        let mut stream = if let Some(timeout) = self.timeout {
+        let stream = if let Some(timeout) = self.timeout {
             let addrs = host.to_socket_addrs()
                 .map_err(Error::TCPConnect)?;
             let mut addrs: Vec<_> = addrs.collect();
@@ -124,8 +90,8 @@ impl Client {
             TcpStream::connect(&host)
                 .map_err(Error::TCPConnect)
         }?;
-
-        let mut tls_client = rustls::Stream::new(&mut tls_conn, &mut stream);
+        let mut stream = self.connector.connect(&server_name, stream)
+            .unwrap();
 
         // Check that the URL given to us is proper, the Gemini protocol specifies all URL requests
         // must end in <CR><LF>.
@@ -133,13 +99,13 @@ impl Client {
             url += "\r\n";
         }
 
-        tls_client.write(url.as_bytes())
+        stream.write(url.as_bytes())
             .map_err(|e| Error::StreamIO("Failed to send request to server", e))?;
     
         // We can't parse this as a string yet, we can be confident-ish that the header is UTF-8,
         // but we have no idea what the body is.
         let mut response = Vec::new();
-        tls_client.read_to_end(&mut response)
+        stream.read_to_end(&mut response)
             .map_err(|e| Error::StreamIO("Failed to read resposne from server", e))?;
 
         // The Gemini protocol specifies that the response must have a header, and optionally a body
