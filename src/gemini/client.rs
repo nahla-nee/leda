@@ -105,7 +105,7 @@ impl Client {
             let addrs = host.to_socket_addrs()
                 .map_err(Error::TCPConnect)?;
             let mut addrs: Vec<_> = addrs.collect();
-            if addrs.len() == 0 {
+            if addrs.is_empty() {
                 return Err(Error::UrlNoAddress(host));
             }
 

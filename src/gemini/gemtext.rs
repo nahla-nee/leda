@@ -67,8 +67,8 @@ impl<'a> Gemtext<'a> {
                 let start = line.as_ptr();
                 let mut len = line.len();
 
-                while let Some(line) = lines.next() {
-                    if let Some(_) = line.strip_prefix("```") {
+                for line in lines.by_ref() {
+                    if line.strip_prefix("```").is_some() {
                         break;
                     }
 
