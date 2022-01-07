@@ -110,7 +110,12 @@ impl TryFrom<String> for Header {
 }
 
 impl StatusCode {
-    pub fn from_string(input: &str) -> Result<StatusCode, Error> {
+    /// parses a given string and returns its equivalent [`StatusCode`]
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if the given string wasn't an exact match to any status code.
+    fn from_string(input: &str) -> Result<StatusCode, Error> {
         Ok(match input {
             "10" => StatusCode::Input(InputCode::Input),
             "11" => StatusCode::Input(InputCode::Sensitive),
@@ -135,6 +140,30 @@ impl StatusCode {
                     input)
                 ))
         })
+    }
+
+    #[cfg(feature = "py_bindings")]
+    pub fn to_u32(&self) -> u32 {
+        match self {
+            StatusCode::Input(InputCode::Input) => 10,
+            StatusCode::Input(InputCode::Sensitive) => 11,
+            StatusCode::Success => 20,
+            StatusCode::Redirect(RedirectCode::Temporary) => 30,
+            StatusCode::Redirect(RedirectCode::Permanent) => 31,
+            StatusCode::FailTemporary(FailTemporaryCode::Temporary) => 40,
+            StatusCode::FailTemporary(FailTemporaryCode::ServerUnavailable) => 41,
+            StatusCode::FailTemporary(FailTemporaryCode::CGIError) => 42,
+            StatusCode::FailTemporary(FailTemporaryCode::ProxyError) => 43,
+            StatusCode::FailTemporary(FailTemporaryCode::SlowDown) => 44,
+            StatusCode::FailPermanent(FailPermanentCode::Permanent) => 50,
+            StatusCode::FailPermanent(FailPermanentCode::NotFound) => 51,
+            StatusCode::FailPermanent(FailPermanentCode::Gone) => 52,
+            StatusCode::FailPermanent(FailPermanentCode::ProxyRefused) => 53,
+            StatusCode::FailPermanent(FailPermanentCode::BadRequest) => 59,
+            StatusCode::CertFail(CertFailCode::CertRequired) => 60,
+            StatusCode::CertFail(CertFailCode::CertNotAuthorized) => 61,
+            StatusCode::CertFail(CertFailCode::CertNotValid) => 62
+        }
     }
 }
 

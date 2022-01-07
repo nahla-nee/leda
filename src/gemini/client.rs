@@ -20,6 +20,19 @@ pub struct Client {
 }
 
 impl Client {
+    /// Creates a client that can be used to make gemini requests
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use leda::gemini::Client;
+    /// 
+    /// let client = Client::new().unwrap();
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error::TLSClient`] if creating a TLS connector failed.
     pub fn new() -> Result<Client, Error> {
         let mut builder = ssl::SslConnector::builder(ssl::SslMethod::tls())
             .map_err(Error::TLSClient)?;
@@ -32,6 +45,20 @@ impl Client {
         })
     }
 
+    /// Creates a client that can be used to make gemini requests, with a timeout on the connection.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use leda::gemini::Client;
+    /// use std::time::Duration;
+    /// 
+    /// let client = Client::with_timeout(Duration::from_secs(5)).unwrap();
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error`] if creating a TLS connector failed.
     pub fn with_timeout(timeout: Duration) -> Result<Client, Error> {
         let mut client = Self::new()?;
         client.timeout = Some(timeout);
@@ -39,10 +66,41 @@ impl Client {
         Ok(client)
     }
 
+    /// Sets the timeout for the client.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use leda::gemini::Client;
+    /// use std::time::Duration;
+    /// 
+    /// let client = Client::new().unwrap();
+    /// // A timeout of 5 seconds
+    /// client.set_timeout(Some(Duration::from_secs(5)));
+    /// // No timeout
+    /// client.set_timeout(None);
+    /// ```
     pub fn set_timeout(&mut self, timeout: Option<Duration>) {
         self.timeout = timeout;
     }
 
+    /// Gets the page at `url`.
+    /// 
+    /// The given url must start with the scheme `"gemini://"`
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use leda::gemini::Client;
+    /// 
+    /// let mut client = Client::new().unwrap();
+    /// let response = client.request("gemini://gemini.circumlunar.space/".to_string());
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error`] if there was a problem with parsing the url, communicating with
+    /// the server, or with parsing the servers response.
     pub fn request(&mut self, url: String) -> Result<Response, Error> {
         let (header, body) = self.get_data(url)?;
         let header = Header::try_from(header)?;
@@ -79,7 +137,7 @@ impl Client {
             let tail = addrs.pop().unwrap();
             let head = addrs.into_iter()
                 .map(|addr| TcpStream::connect_timeout(&addr, timeout))
-                .find(|c| c.is_ok());
+                .find(Result::is_ok);
             if let Some(x) = head {
                 x
             } else {
@@ -152,7 +210,7 @@ impl Client {
     #[pyo3(name = "set_timeout")]
     pub fn py_set_timeout(&mut self, seconds: u64) {
         if seconds == 0 {
-            self.timeout = None
+            self.timeout = None;
         }
         else {
             self.timeout = Some(Duration::from_secs(seconds));

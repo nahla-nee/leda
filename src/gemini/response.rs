@@ -25,7 +25,7 @@ impl Response {
 impl Response {
     #[getter(header)]
     pub fn py_header(&self) -> PyResult<(u32, String)> {
-        let status = self.header.status.to_string().parse().unwrap();
+        let status = self.header.status.to_u32();
         let meta = self.header.meta.clone();
 
         Ok((status, meta))

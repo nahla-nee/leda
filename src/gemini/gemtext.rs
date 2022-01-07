@@ -4,11 +4,13 @@ use super::Error;
 
 // User facing, we never read from parsed oursevles.
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Gemtext <'a>{
-    pub elements: Vec<GemtextElement<'a>>
+    pub elements: Vec<Element<'a>>
 }
 
-pub enum GemtextElement<'a> {
+#[derive(Debug)]
+pub enum Element<'a> {
     Text(&'a str),
     Link(&'a str, &'a str),
     Heading(&'a str),
@@ -20,6 +22,22 @@ pub enum GemtextElement<'a> {
 }
 
 impl<'a> Gemtext<'a> {
+    /// Creates a new [`Gemtext`] document from the given string.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use leda::gemini::gemtext;
+    /// 
+    /// let example_doc = "# Example raw gemtext header\n\
+    ///                    I'm a paragraph!\n\
+    ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
+    /// let parsed_doc = gemtext::Gemtext::new(example_doc).unwrap();
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
 
@@ -41,27 +59,27 @@ impl<'a> Gemtext<'a> {
                     (text, text)
                 };
 
-                elements.push(GemtextElement::Link(url, text));
+                elements.push(Element::Link(url, text));
             }
             else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
-                elements.push(GemtextElement::Subsubheading(text))
+                elements.push(Element::Subsubheading(text));
             }
             else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
-                elements.push(GemtextElement::Subheading(text))
+                elements.push(Element::Subheading(text));
             }
             else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
-                elements.push(GemtextElement::Heading(text))
+                elements.push(Element::Heading(text));
             }
             else if let Some(line) = line.strip_prefix('*') {
                 let text = line.trim_start();
-                elements.push(GemtextElement::UnorederedListItem(text));
+                elements.push(Element::UnorederedListItem(text));
             }
             else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
-                elements.push(GemtextElement::BlockQuote(text));
+                elements.push(Element::BlockQuote(text));
             }
             else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
@@ -80,10 +98,10 @@ impl<'a> Gemtext<'a> {
                     std::str::from_utf8_unchecked(str_slice)
                 };
 
-                elements.push(GemtextElement::Preformatted(text))
+                elements.push(Element::Preformatted(text));
             }
             else {
-                elements.push(GemtextElement::Text(line));
+                elements.push(Element::Text(line));
             }
         }
 
@@ -92,6 +110,26 @@ impl<'a> Gemtext<'a> {
         })
     }
 
+    /// Creates an html [`String`] to represent the given gemtext document
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use leda::gemini::gemtext;
+    /// 
+    /// let example_doc = "# Example raw gemtext header\n\
+    ///                    I'm a paragraph!\n\
+    ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
+    /// let parsed_doc = gemtext::Gemtext::parse_to_html(example_doc).unwrap();
+    /// let expected_result = concat!("<h1>Example raw gemtext header</h1>\n<p></p>\n",
+    ///                        "<p>I'm a paragraph!</p>\n",
+    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n<p></p>\n");
+    /// assert_eq!(expected_result, parsed_doc)
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     pub fn parse_to_html(input: &'a str) -> Result<String, Error> {
         let gemtext = Self::new(input)?;
         // This allocation will be a bit too short but should be close enough to only result in
@@ -101,40 +139,40 @@ impl<'a> Gemtext<'a> {
         let mut elements = gemtext.elements.into_iter().peekable();
         while let Some(element) = elements.next() {
             match element {
-                GemtextElement::Text(text) => {
+                Element::Text(text) => {
                     result += "<p>";
                     result += text;
                     result += "</p>\n";
                 },
-                GemtextElement::Link(link, text) => {
+                Element::Link(link, text) => {
                     result += "<a href=\"";
                     result += link;
                     result += "\">";
                     result += text;
-                    result += "</a>\n<p></p>\n"
+                    result += "</a>\n<p></p>\n";
                 },
-                GemtextElement::Heading(text) => {
+                Element::Heading(text) => {
                     result += "<h1>";
                     result += text;
                     result += "</h1>\n<p></p>\n";
                 },
-                GemtextElement::Subheading(text) => {
+                Element::Subheading(text) => {
                     result += "<h2>";
                     result += text;
                     result += "</h2>\n<p></p>\n";
                 },
-                GemtextElement::Subsubheading(text) => {
+                Element::Subsubheading(text) => {
                     result += "<h3>";
                     result += text;
                     result += "</h3>\n<p></p>\n";
                 },
-                GemtextElement::UnorederedListItem(text) => {
+                Element::UnorederedListItem(text) => {
                     result += "<ul>\n";
 
                     result += "<li>";
                     result += text;
                     result += "</li>\n<p></p>\n";
-                    while let Some(GemtextElement::UnorederedListItem(item)) = elements.peek() {
+                    while let Some(Element::UnorederedListItem(item)) = elements.peek() {
                         result += "<li>";
                         result += *item;
                         result += "</li>\n<p></p>\n";
@@ -144,12 +182,12 @@ impl<'a> Gemtext<'a> {
 
                     result += "</ul>\n<p></p>\n";
                 },
-                GemtextElement::BlockQuote(text) => {
+                Element::BlockQuote(text) => {
                     result += "<blockquote>";
                     result += text;
                     result += "</blockquote>\n<p></p>\n";
                 },
-                GemtextElement::Preformatted(text) => {
+                Element::Preformatted(text) => {
                     result += "<pre>";
                     result += text;
                     result += "</pre>\n<p></p>\n";
@@ -195,17 +233,17 @@ impl PyGemtext {
 
         for element in gemtext.elements {
             let values = match element {
-                GemtextElement::Text(text) => (0, text.to_string(), None),
-                GemtextElement::Link(text, link) => (1, text.to_string(), Some(link.to_string())),
-                GemtextElement::Heading(text) => (2, text.to_string(), None),
-                GemtextElement::Subheading(text) => (3, text.to_string(), None),
-                GemtextElement::Subsubheading(text) => (4, text.to_string(), None),
-                GemtextElement::UnorederedListItem(text) => (5, text.to_string(), None),
-                GemtextElement::BlockQuote(text) => (6, text.to_string(), None),
-                GemtextElement::Preformatted(text) => (7, text.to_string(), None)
+                Element::Text(text) => (0, text.to_string(), None),
+                Element::Link(text, link) => (1, text.to_string(), Some(link.to_string())),
+                Element::Heading(text) => (2, text.to_string(), None),
+                Element::Subheading(text) => (3, text.to_string(), None),
+                Element::Subsubheading(text) => (4, text.to_string(), None),
+                Element::UnorederedListItem(text) => (5, text.to_string(), None),
+                Element::BlockQuote(text) => (6, text.to_string(), None),
+                Element::Preformatted(text) => (7, text.to_string(), None)
             };
 
-            elements.push(PyGemtextElement::new(values.0, values.1, values.2))
+            elements.push(PyGemtextElement::new(values.0, values.1, values.2));
         };
 
         Ok(PyGemtext{
