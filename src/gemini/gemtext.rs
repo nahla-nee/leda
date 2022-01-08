@@ -2,22 +2,32 @@ use core::slice;
 
 use super::Error;
 
-// User facing, we never read from parsed oursevles.
+/// Represents a gemtext document by element, line by line.
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Gemtext <'a>{
     pub elements: Vec<Element<'a>>
 }
 
-#[derive(Debug)]
+/// Represents the varying elements a gemtext document can have.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Element<'a> {
+    /// Text without any specific formatting, to be treated like a paragraph
     Text(&'a str),
+    /// A link, the first member of the tuple is where the link goes to, the second member is the
+    /// human readable text to display for this link.
     Link(&'a str, &'a str),
+    /// Header
     Heading(&'a str),
+    /// Sub-header 
     Subheading(&'a str),
+    /// Sub-sub-header
     Subsubheading(&'a str),
+    /// An item in unordered list
     UnorederedListItem(&'a str),
+    /// A block quote
     BlockQuote(&'a str),
+    /// An unspecified number of lines that have been preformatted.
     Preformatted(&'a str)
 }
 
@@ -27,12 +37,22 @@ impl<'a> Gemtext<'a> {
     /// # Examples
     /// 
     /// ```
-    /// use leda::gemini::gemtext;
+    /// use leda::gemini::gemtext::{self, Gemtext};
     /// 
-    /// let example_doc = "# Example raw gemtext header\n\
+    /// let example_doc = "# Example gemtext header\n\
     ///                    I'm a paragraph!\n\
     ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
-    /// let parsed_doc = gemtext::Gemtext::new(example_doc).unwrap();
+    /// let parsed_doc = Gemtext::new(example_doc)
+    ///     .expect("Failed to parse gemtext document");
+    /// let expected_result = [
+    ///                        gemtext::Element::Heading("Example gemtext header"),
+    ///                        gemtext::Element::Text("I'm a paragraph!"),
+    ///                        gemtext::Element::Link("gemini://gemini.circumlunar.space/",
+    ///                             "gemini homepage link")
+    ///                       ];
+    /// for (real, expected) in parsed_doc.elements.iter().zip(expected_result.iter()) {
+    ///     assert_eq!(real, expected);
+    /// }
     /// ```
     /// 
     /// # Errors
@@ -121,9 +141,12 @@ impl<'a> Gemtext<'a> {
     ///                    I'm a paragraph!\n\
     ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
     /// let parsed_doc = gemtext::Gemtext::parse_to_html(example_doc).unwrap();
-    /// let expected_result = concat!("<h1>Example raw gemtext header</h1>\n<p></p>\n",
+    /// let expected_result = concat!(
+    ///                        "<h1>Example raw gemtext header</h1>\n",
+    ///                        "<p></p>\n",
     ///                        "<p>I'm a paragraph!</p>\n",
-    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n<p></p>\n");
+    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n"
+    ///                        "<p></p>\n");
     /// assert_eq!(expected_result, parsed_doc)
     /// ```
     /// 

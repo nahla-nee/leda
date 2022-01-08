@@ -11,6 +11,7 @@
 //! 
 //! ```no_run
 //! use leda::gemini;
+//! use leda::gemini::gemtext::Gemtext;
 //! 
 //! fn main() {
 //!     let url = String::from("gemini://gemini.circumlunar.space/")
@@ -31,7 +32,7 @@
 //!     }
 //!     let body = std::str::from_utf8(body)
 //!         .expect("Failed to parse body as utf8");
-//!     let html = gemini::gemtext::Gemtext::parse_to_html(body)
+//!     let html = Gemtext::parse_to_html(body)
 //!         .expect("Failed to parse body as gemtext");
 //! 
 //!     println!("raw body: \n{}\n", body);
