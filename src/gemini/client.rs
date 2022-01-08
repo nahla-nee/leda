@@ -216,27 +216,3 @@ impl Client {
         Ok((header, body))
     }
 }
-
-#[cfg(feature = "py_bindings")]
-#[pymethods]
-impl Client {
-    #[new]
-    pub fn __new__() -> Result<Client, Error> {
-        Client::new()
-    }
-
-    #[pyo3(name = "set_timeout")]
-    pub fn py_set_timeout(&mut self, seconds: u64) {
-        if seconds == 0 {
-            self.timeout = None;
-        }
-        else {
-            self.timeout = Some(Duration::from_secs(seconds));
-        }
-    }
-
-    #[pyo3(name = "request")]
-    pub fn py_request(&mut self, url: String) -> Result<Response, Error> {
-        self.request(url)
-    }
-}

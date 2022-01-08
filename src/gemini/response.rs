@@ -24,21 +24,3 @@ impl Response {
         }
     }
 }
-
-// cfg_attr doesn't work with getters and setters
-#[cfg(feature = "py_bindings")]
-#[pymethods]
-impl Response {
-    #[getter(header)]
-    pub fn py_header(&self) -> PyResult<(u32, String)> {
-        let status = self.header.status.to_u32();
-        let meta = self.header.meta.clone();
-
-        Ok((status, meta))
-    }
-
-    #[getter(body)]
-    pub fn py_body(&self) -> PyResult<Option<Vec<u8>>> {
-        Ok(self.body.clone())
-    }
-}

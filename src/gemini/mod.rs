@@ -13,6 +13,4 @@ mod error;
 
 pub use client::{Client, ClientBuilder};
 pub use response::Response;
-#[cfg(feature = "py_bindings")]
-pub use gemtext::{PyGemtext, PyGemtextElement};
 pub use error::Error;
