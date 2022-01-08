@@ -1,42 +1,16 @@
 use super::error::Error;
 
+/// Represents the header sent back from a server's response.
 #[derive(Clone)]
-pub enum InputCode {
-    Input,
-    Sensitive
+pub struct Header {
+    /// The status code of the response.
+    pub status: StatusCode,
+    /// The meta information if any is provided. If the server didn't send any additional info
+    /// this string will be empty.
+    pub meta: String
 }
 
-#[derive(Clone)]
-pub enum RedirectCode {
-    Temporary,
-    Permanent
-}
-
-#[derive(Clone)]
-pub enum FailTemporaryCode {
-    Temporary,
-    ServerUnavailable,
-    CGIError,
-    ProxyError,
-    SlowDown,
-}
-
-#[derive(Clone)]
-pub enum FailPermanentCode {
-    Permanent,
-    NotFound,
-    Gone,
-    ProxyRefused,
-    BadRequest
-}
-
-#[derive(Clone)]
-pub enum CertFailCode {
-    CertRequired,
-    CertNotAuthorized,
-    CertNotValid
-}
-
+/// Represents a status code from a server's response header.
 #[derive(Clone)]
 pub enum StatusCode {
     Input(InputCode),
@@ -47,10 +21,45 @@ pub enum StatusCode {
     CertFail(CertFailCode)
 }
 
+/// Represents the subtypes of input a server can ask for.
 #[derive(Clone)]
-pub struct Header {
-    pub status: StatusCode,
-    pub meta: String
+pub enum InputCode {
+    Input,
+    Sensitive
+}
+
+/// Represents the subtypes of redirects a server can ask for.
+#[derive(Clone)]
+pub enum RedirectCode {
+    Temporary,
+    Permanent
+}
+
+/// Represents the subtypes of temporary failure a server can have.
+#[derive(Clone)]
+pub enum FailTemporaryCode {
+    Temporary,
+    ServerUnavailable,
+    CGIError,
+    ProxyError,
+    SlowDown,
+}
+/// Represents the subtypes of permanent failure a server can have.
+#[derive(Clone)]
+pub enum FailPermanentCode {
+    Permanent,
+    NotFound,
+    Gone,
+    ProxyRefused,
+    BadRequest
+}
+
+/// Represents the subtypes of certificate failure a server can have.
+#[derive(Clone)]
+pub enum CertFailCode {
+    CertRequired,
+    CertNotAuthorized,
+    CertNotValid
 }
 
 impl TryFrom<String> for Header {

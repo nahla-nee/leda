@@ -13,7 +13,9 @@ use openssl::ssl;
 #[cfg(feature = "py_bindings")]
 use pyo3::prelude::*;
 
+/// Represents a client which will make gemini connections.
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
+#[derive(Clone)]
 pub struct Client {
     connector: ssl::SslConnector,
     timeout: Option<Duration>

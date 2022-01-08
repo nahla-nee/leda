@@ -1,12 +1,21 @@
 use super::Header;
+// make the docs code happy
+#[allow(unused_imports)]
+use super::header;
 
 #[cfg(feature = "py_bindings")]
 use pyo3::prelude::*;
 
+
+/// Represents a response generated from a gemini server.
 #[derive(Clone)]
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Response {
+    /// The header the server responded with, includes the response status code as well as the meta
+    /// information provided.
     pub header: Header,
+    /// The response body content from the server. `body` will only be `Some` if the header's
+    /// [`Header::status`] is [`header::StatusCode::Success`], otherwise it'll be `None`.
     pub body: Option<Vec<u8>>
 }
 
