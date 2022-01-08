@@ -11,6 +11,6 @@ pub mod gemtext;
 /// The error type returned by functions in this module.
 mod error;
 
-pub use client::{Client, ClientBuilder};
+pub use client::Client;
 pub use response::Response;
 pub use error::Error;

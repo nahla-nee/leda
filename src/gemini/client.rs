@@ -14,20 +14,22 @@ use openssl::ssl;
 use pyo3::prelude::*;
 
 /// Create a client using a builder pattern.
-pub struct ClientBuilder {
+pub struct Builder {
     timeout: Option<Duration>
 }
 
-impl ClientBuilder {
+impl Builder {
     /// Create a new client builder.
-    pub fn new() -> ClientBuilder {
-        ClientBuilder {
+    #[must_use]
+    pub fn new() -> Builder {
+        Builder {
             timeout: None
         }
     }
 
     /// Set the timeout for the client's connections.
-    pub fn timeout(mut self, timeout: Option<Duration>) -> ClientBuilder {
+    #[must_use]
+    pub fn timeout(mut self, timeout: Option<Duration>) -> Builder {
         self.timeout = timeout;
         self
     }
@@ -42,6 +44,12 @@ impl ClientBuilder {
         client.set_timeout(self.timeout);
 
         Ok(client)
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -80,8 +88,9 @@ impl Client {
     }
 
     /// Returns a client builder that can be used to build a [`Client`].
-    pub fn builder() -> ClientBuilder {
-        ClientBuilder::new()
+    #[must_use]
+    pub fn builder() -> Builder {
+        Builder::new()
     }
 
     /// Sets the timeout for the client.

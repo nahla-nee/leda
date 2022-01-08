@@ -3,7 +3,7 @@
 //! 
 //! ## Cargo Features
 //! 
-//! - **py_bindings**: generates bindings for python
+//! - **`py_bindings`**: generates bindings for python
 //! 
 //! ## Get started
 //! 
@@ -12,31 +12,30 @@
 //! ```no_run
 //! use leda::gemini::{self, gemtext::Gemtext};
 //! 
-//! fn main() {
-//!     let url = String::from("gemini://gemini.circumlunar.space/")
 //! 
-//!     let mut client = gemini::Client::builder()
-//!         .timeout(Some(Duration::from_secs(5)))
-//!         .build()
-//!         .expect("Failed to create gemini client");
+//! let url = String::from("gemini://gemini.circumlunar.space/")
 //! 
-//!     let response = client.request(url)
-//!         .expect("Failed to retrieve gemini page");
+//! let mut client = gemini::Client::builder()
+//!     .timeout(Some(Duration::from_secs(5)))
+//!     .build()
+//!     .expect("Failed to create gemini client");
 //! 
-//!     let body = match &response.header {
-//!         gemini::header::StatusCode::Success => &response.body,
-//!         // you can handle differents errors, redirects, and input requests as you see fit from
-//!         // here on!
-//!         _ => panic!("Page requested didn't return a body!")
-//!     }
-//!     let body = std::str::from_utf8(body)
-//!         .expect("Failed to parse body as utf8");
-//!     let html = Gemtext::parse_to_html(body)
-//!         .expect("Failed to parse body as gemtext");
+//! let response = client.request(url)
+//!     .expect("Failed to retrieve gemini page");
 //! 
-//!     println!("raw body: \n{}\n", body);
-//!     println!("html body: \n{}\n", html);
+//! let body = match &response.header {
+//!     gemini::header::StatusCode::Success => &response.body,
+//!     // you can handle differents errors, redirects, and input requests as you see fit from
+//!     // here on!
+//!     _ => panic!("Page requested didn't return a body!")
 //! }
+//! let body = std::str::from_utf8(body)
+//!     .expect("Failed to parse body as utf8");
+//! let html = Gemtext::parse_to_html(body)
+//!     .expect("Failed to parse body as gemtext");
+//! 
+//! println!("raw body: \n{}\n", body);
+//! println!("html body: \n{}\n", html);
 //! ```
 
 pub mod gemini;

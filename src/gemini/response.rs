@@ -17,6 +17,7 @@ pub struct Response {
 }
 
 impl Response {
+    #[must_use]
     pub fn new(header: header::Header, body: Option<Vec<u8>>) -> Response {
         Response {
             header,
