@@ -10,8 +10,7 @@
 //! This is a minimal example to show what using this library is like.
 //! 
 //! ```no_run
-//! use leda::gemini;
-//! use leda::gemini::gemtext::Gemtext;
+//! use leda::gemini::{self, gemtext::Gemtext};
 //! 
 //! fn main() {
 //!     let url = String::from("gemini://gemini.circumlunar.space/")
