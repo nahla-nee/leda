@@ -12,7 +12,7 @@ pub struct Response {
     /// information provided.
     pub header: header::Header,
     /// The response body content from the server. `body` will only be `Some` if the header's
-    /// [`Header::status`] is [`header::StatusCode::Success`], otherwise it'll be `None`.
+    /// [`header::Header::status`] is [`header::StatusCode::Success`], otherwise it'll be `None`.
     pub body: Option<Vec<u8>>
 }
 
