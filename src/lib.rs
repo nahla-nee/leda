@@ -15,7 +15,9 @@
 //! fn main() {
 //!     let url = String::from("gemini://gemini.circumlunar.space/")
 //! 
-//!     let mut client = gemini::Client::with_timeout(Duration::from_secs(5))
+//!     let mut client = gemini::Client::builder()
+//!         .timeout(Some(Duration::from_secs(5)))
+//!         .build()
 //!         .expect("Failed to create gemini client");
 //! 
 //!     let response = client.request(url)
@@ -73,7 +75,9 @@ mod tests {
     fn full_test() {
         let url = String::from("gemini://gemini.circumlunar.space/");
 
-        let mut client = gemini::Client::with_timeout(Duration::from_secs(5))
+        let mut client = gemini::Client::builder()
+            .timeout(Some(Duration::from_secs(5)))
+            .build()
             .expect("Failed to create gemini client");
 
         let response = client.request(url)

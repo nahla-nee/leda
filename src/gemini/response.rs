@@ -1,6 +1,3 @@
-use super::Header;
-// make the docs code happy
-#[allow(unused_imports)]
 use super::header;
 
 #[cfg(feature = "py_bindings")]
@@ -13,14 +10,14 @@ use pyo3::prelude::*;
 pub struct Response {
     /// The header the server responded with, includes the response status code as well as the meta
     /// information provided.
-    pub header: Header,
+    pub header: header::Header,
     /// The response body content from the server. `body` will only be `Some` if the header's
     /// [`Header::status`] is [`header::StatusCode::Success`], otherwise it'll be `None`.
     pub body: Option<Vec<u8>>
 }
 
 impl Response {
-    pub fn new(header: Header, body: Option<Vec<u8>>) -> Response {
+    pub fn new(header: header::Header, body: Option<Vec<u8>>) -> Response {
         Response {
             header,
             body

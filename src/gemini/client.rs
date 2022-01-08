@@ -13,6 +13,38 @@ use openssl::ssl;
 #[cfg(feature = "py_bindings")]
 use pyo3::prelude::*;
 
+/// Create a client using a builder pattern.
+pub struct ClientBuilder {
+    timeout: Option<Duration>
+}
+
+impl ClientBuilder {
+    /// Create a new client builder.
+    pub fn new() -> ClientBuilder {
+        ClientBuilder {
+            timeout: None
+        }
+    }
+
+    /// Set the timeout for the client's connections.
+    pub fn timeout(mut self, timeout: Option<Duration>) -> ClientBuilder {
+        self.timeout = timeout;
+        self
+    }
+
+    /// Create a client from the given builder.
+    /// 
+    /// # Errors
+    /// 
+    /// Will return an [`Error::TLSClient`] if creating a TLS connector failed.
+    pub fn build(self) -> Result<Client, Error> {
+        let mut client = Client::new()?;
+        client.set_timeout(self.timeout);
+
+        Ok(client)
+    }
+}
+
 /// Represents a client which will make gemini connections.
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
 #[derive(Clone)]
@@ -47,25 +79,9 @@ impl Client {
         })
     }
 
-    /// Creates a client that can be used to make gemini requests, with a timeout on the connection.
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use leda::gemini::Client;
-    /// use std::time::Duration;
-    /// 
-    /// let client = Client::with_timeout(Duration::from_secs(5)).unwrap();
-    /// ```
-    /// 
-    /// # Errors
-    /// 
-    /// Will return an [`Error`] if creating a TLS connector failed.
-    pub fn with_timeout(timeout: Duration) -> Result<Client, Error> {
-        let mut client = Self::new()?;
-        client.timeout = Some(timeout);
-
-        Ok(client)
+    /// Returns a client builder that can be used to build a [`Client`].
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::new()
     }
 
     /// Sets the timeout for the client.
