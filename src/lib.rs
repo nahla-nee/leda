@@ -21,7 +21,12 @@
 //!     let response = client.request(url)
 //!         .expect("Failed to retrieve gemini page");
 //! 
-//!     let body = &response.body.expect("Body was none!");
+//!     let body = match &response.header {
+//!         gemini::header::StatusCode::Success => &response.body,
+//!         // you can handle differents errors, redirects, and input requests as you see fit from
+//!         // here on!
+//!         _ => panic!("Page requested didn't return a body!")
+//!     }
 //!     let body = std::str::from_utf8(body)
 //!         .expect("Failed to parse body as utf8");
 //!     let html = gemini::gemtext::Gemtext::parse_to_html(body)
