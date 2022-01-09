@@ -38,6 +38,7 @@ else {
     // here on!
     panic!("Page requested didn't return a body!");
 };
+
 let body = std::str::from_utf8(&body)
     .expect("Failed to parse body as utf8");
 let html = Gemtext::new(body)
