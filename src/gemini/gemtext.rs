@@ -6,11 +6,11 @@ use super::Error;
 /// Represents a gemtext document by element, line by line.
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct Gemtext <'a>{
+pub struct Gemtext<'a> {
     /// List of elements.
     pub elements: Vec<Element<'a>>,
     /// The total length of every string in this document. Helps parsers preallocate strings.
-    pub total_len: usize
+    pub total_len: usize,
 }
 
 /// Represents the varying elements a gemtext document can have.
@@ -23,7 +23,7 @@ pub enum Element<'a> {
     Link(&'a str, &'a str),
     /// Header
     Heading(&'a str),
-    /// Sub-header 
+    /// Sub-header
     Subheading(&'a str),
     /// Sub-sub-header
     Subsubheading(&'a str),
@@ -32,17 +32,17 @@ pub enum Element<'a> {
     /// A block quote
     BlockQuote(&'a str),
     /// An unspecified number of lines that have been preformatted.
-    Preformatted(&'a str)
+    Preformatted(&'a str),
 }
 
 impl<'a> Gemtext<'a> {
     /// Creates a new [`Gemtext`] document from the given string.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use leda::gemini::gemtext::{self, Gemtext};
-    /// 
+    ///
     /// let example_doc = "# Example gemtext header\n\
     ///                    I'm a paragraph!\n\
     ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
@@ -58,9 +58,9 @@ impl<'a> Gemtext<'a> {
     ///     assert_eq!(real, expected);
     /// }
     /// ```
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
@@ -72,37 +72,35 @@ impl<'a> Gemtext<'a> {
                 let text = line.trim_start();
                 if text.is_empty() {
                     // invalid link has no value.
-                    return Err(Error::GemtextFormat(format!("Invalid link format, there must be \
-                        something after =>. Line: {}", line.trim())));
+                    return Err(Error::GemtextFormat(format!(
+                        "Invalid link format, there must be \
+                        something after =>. Line: {}",
+                        line.trim()
+                    )));
                 }
 
                 let (url, text) = if let Some(index) = text.find(char::is_whitespace) {
                     let split = text.split_at(index);
                     (split.0, split.1.trim_start())
-                }
-                else {
+                } else {
                     (text, text)
                 };
 
                 elements.push(Element::Link(url, text));
                 total_len += url.len() + text.len();
-            }
-            else if let Some(line) = line.strip_prefix("###") {
+            } else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
                 elements.push(Element::Subsubheading(text));
                 total_len += text.len();
-            }
-            else if let Some(line) = line.strip_prefix("##") {
+            } else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
                 elements.push(Element::Subheading(text));
                 total_len += text.len();
-            }
-            else if let Some(line) = line.strip_prefix('#') {
+            } else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
                 elements.push(Element::Heading(text));
                 total_len += text.len();
-            }
-            else if let Some(line) = line.strip_prefix('*') {
+            } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
                 let text = line.trim_start();
@@ -117,20 +115,17 @@ impl<'a> Gemtext<'a> {
                         total_len += text.len();
 
                         lines.next();
-                    }
-                    else {
+                    } else {
                         break;
                     }
                 }
 
                 elements.push(Element::UnorederedList(list));
-            }
-            else if let Some(line) = line.strip_prefix('>') {
+            } else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
                 elements.push(Element::BlockQuote(text));
                 total_len += text.len();
-            }
-            else if let Some(line) = line.strip_prefix("```") {
+            } else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
                 let mut len = line.len();
 
@@ -149,8 +144,7 @@ impl<'a> Gemtext<'a> {
 
                 elements.push(Element::Preformatted(text));
                 total_len += text.len();
-            }
-            else {
+            } else {
                 elements.push(Element::Text(line));
                 total_len += line.len();
             }
@@ -158,17 +152,17 @@ impl<'a> Gemtext<'a> {
 
         Ok(Gemtext {
             elements,
-            total_len
+            total_len,
         })
     }
 
     /// Creates an html [`String`] to represent the given gemtext document
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use leda::gemini::gemtext;
-    /// 
+    ///
     /// let example_doc = "# Example raw gemtext header\n\
     ///                    I'm a paragraph!\n\
     ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
@@ -183,9 +177,9 @@ impl<'a> Gemtext<'a> {
     ///                        "<p></p>\n");
     /// assert_eq!(expected_result, parsed_doc)
     /// ```
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     #[must_use]
     pub fn to_html(&self) -> String {
@@ -200,19 +194,19 @@ impl<'a> Gemtext<'a> {
                     // every elements gets "<p></p>" appended to it so that it can be on its own line
                     // paragraph elements don't need that since they already will do that by default.
                     continue;
-                },
+                }
                 Element::Link(link, text) => {
                     let _ = writeln!(&mut result, "<a href=\"{}\">{}</a>", link, text);
-                },
+                }
                 Element::Heading(text) => {
                     let _ = writeln!(&mut result, "<h1>{}</h1>", text);
-                },
+                }
                 Element::Subheading(text) => {
                     let _ = writeln!(&mut result, "<h2>{}</h2>", text);
-                },
+                }
                 Element::Subsubheading(text) => {
                     let _ = writeln!(&mut result, "<h3>{}</h3>", text);
-                },
+                }
                 Element::UnorederedList(list) => {
                     result += "<ul>\n";
 
@@ -222,10 +216,10 @@ impl<'a> Gemtext<'a> {
                     }
 
                     result += "</ul>\n";
-                },
+                }
                 Element::BlockQuote(text) => {
                     let _ = writeln!(&mut result, "<blockquote>{}</blockquote>", text);
-                },
+                }
                 Element::Preformatted(text) => {
                     let _ = writeln!(&mut result, "<pre>{}</pre>", text);
                 }

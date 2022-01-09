@@ -28,20 +28,24 @@ pub enum Error {
     StreamIO(&'static str, io::Error),
     /// Returned if there was a problem with parsing gemtext.
     #[error("Malformed gemtext document: {0}")]
-    GemtextFormat(String)
+    GemtextFormat(String),
 }
 
 #[cfg(feature = "py_bindings")]
-use pyo3::{prelude::*, exceptions::{PyIOError, PyValueError}};
+use pyo3::{
+    exceptions::{PyIOError, PyValueError},
+    prelude::*,
+};
 
 #[cfg(feature = "py_bindings")]
 impl std::convert::From<Error> for PyErr {
     fn from(err: Error) -> Self {
         match err {
-            Error::HeaderFormat(_) | Error::UrlParse(_) | Error::UrlNoHost(_) |
-            Error::GemtextFormat(_) | Error::UrlNoAddress(_) => {
-                PyValueError::new_err(err.to_string())
-            },
+            Error::HeaderFormat(_)
+            | Error::UrlParse(_)
+            | Error::UrlNoHost(_)
+            | Error::GemtextFormat(_)
+            | Error::UrlNoAddress(_) => PyValueError::new_err(err.to_string()),
             Error::TCPConnect(_) | Error::TLSClient(_) | Error::StreamIO(_, _) => {
                 PyIOError::new_err(err.to_string())
             }

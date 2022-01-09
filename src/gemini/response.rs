@@ -3,7 +3,6 @@ use super::header;
 #[cfg(feature = "py_bindings")]
 use pyo3::prelude::*;
 
-
 /// Represents a response generated from a gemini server.
 #[derive(Clone)]
 #[cfg_attr(all(feature = "py_bindings"), pyclass)]
@@ -13,15 +12,12 @@ pub struct Response {
     pub header: header::Header,
     /// The response body content from the server. `body` will only be `Some` if the header's
     /// [`header::Header::status`] is [`header::StatusCode::Success`], otherwise it'll be `None`.
-    pub body: Option<Vec<u8>>
+    pub body: Option<Vec<u8>>,
 }
 
 impl Response {
     #[must_use]
     pub fn new(header: header::Header, body: Option<Vec<u8>>) -> Response {
-        Response {
-            header,
-            body
-        }
+        Response { header, body }
     }
 }

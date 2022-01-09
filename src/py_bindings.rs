@@ -3,7 +3,7 @@ use std::time::Duration;
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 
-use super::gemini::{*, gemtext::*, header::*};
+use super::gemini::{gemtext::*, header::*, *};
 
 #[pymethods]
 impl Client {
@@ -16,8 +16,7 @@ impl Client {
     pub fn py_set_timeout(&mut self, seconds: u64) {
         if seconds == 0 {
             self.set_timeout(None);
-        }
-        else {
+        } else {
             self.set_timeout(Some(Duration::from_secs(seconds)));
         }
     }
@@ -50,7 +49,7 @@ impl Response {
             StatusCode::FailPermanent(FailPermanentCode::BadRequest) => 59,
             StatusCode::CertFail(CertFailCode::CertRequired) => 60,
             StatusCode::CertFail(CertFailCode::CertNotAuthorized) => 61,
-            StatusCode::CertFail(CertFailCode::CertNotValid) => 62
+            StatusCode::CertFail(CertFailCode::CertNotValid) => 62,
         };
         let meta = self.header.meta.clone();
 
@@ -63,11 +62,9 @@ impl Response {
     }
 }
 
-
 #[pyclass(name = "Gemtext")]
 #[derive(Clone)]
-pub struct PyGemtext {
-}
+pub struct PyGemtext {}
 
 #[pymethods]
 impl PyGemtext {

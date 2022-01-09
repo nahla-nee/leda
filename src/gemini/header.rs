@@ -7,7 +7,7 @@ pub struct Header {
     pub status: StatusCode,
     /// The meta information if any is provided. If the server didn't send any additional info
     /// this string will be empty.
-    pub meta: String
+    pub meta: String,
 }
 
 /// Represents a status code from a server's response header.
@@ -18,21 +18,21 @@ pub enum StatusCode {
     Redirect(RedirectCode),
     FailTemporary(FailTemporaryCode),
     FailPermanent(FailPermanentCode),
-    CertFail(CertFailCode)
+    CertFail(CertFailCode),
 }
 
 /// Represents the subtypes of input a server can ask for.
 #[derive(Clone)]
 pub enum InputCode {
     Input,
-    Sensitive
+    Sensitive,
 }
 
 /// Represents the subtypes of redirects a server can ask for.
 #[derive(Clone)]
 pub enum RedirectCode {
     Temporary,
-    Permanent
+    Permanent,
 }
 
 /// Represents the subtypes of temporary failure a server can have.
@@ -51,7 +51,7 @@ pub enum FailPermanentCode {
     NotFound,
     Gone,
     ProxyRefused,
-    BadRequest
+    BadRequest,
 }
 
 /// Represents the subtypes of certificate failure a server can have.
@@ -59,7 +59,7 @@ pub enum FailPermanentCode {
 pub enum CertFailCode {
     CertRequired,
     CertNotAuthorized,
-    CertNotValid
+    CertNotValid,
 }
 
 impl TryFrom<String> for Header {
@@ -78,51 +78,52 @@ impl TryFrom<String> for Header {
         let (status, meta) = if header.chars().nth(space_index).unwrap() == ' ' {
             // we don't want to split at the header index because then it will include the space in the meta info
             (&header[0..2], &header[3..])
-        }
-        else {
-            return Err(Error::HeaderFormat(
-                format!("Missing space after status, provided header: {}", header)
-            ))
+        } else {
+            return Err(Error::HeaderFormat(format!(
+                "Missing space after status, provided header: {}",
+                header
+            )));
         };
 
         // The status code must be two integers, no more no less.
         if status.len() != 2 {
-            return Err(Error::HeaderFormat(
-                format!("The status must be exactly two integers, provided header: {}", header)
-            ))
+            return Err(Error::HeaderFormat(format!(
+                "The status must be exactly two integers, provided header: {}",
+                header
+            )));
         }
         // The status meta info must end in "\r\n".
         if !meta.ends_with("\r\n") {
-            return Err(Error::HeaderFormat(
-                String::from("Meta information for the header doesn't end in <CR><LF>")
-            ))
+            return Err(Error::HeaderFormat(String::from(
+                "Meta information for the header doesn't end in <CR><LF>",
+            )));
         }
 
         // Remove the CRLF, trim isn't what we want because trailing white space can be part of <META>.
-        let meta = &meta[0..meta.len()-2];
+        let meta = &meta[0..meta.len() - 2];
         // Header <META> cannot be longer than 1024, if its then the entire header is invalid.
         if meta.len() > 1024 {
-            return Err(Error::HeaderFormat(
-                format!("The header's meta info was too long, maximum length is 1024 bytes, actual
+            return Err(Error::HeaderFormat(format!(
+                "The header's meta info was too long, maximum length is 1024 bytes, actual
                 length was {} bytes",
-                meta.len())
-            ))
+                meta.len()
+            )));
         }
 
         let status = StatusCode::from_string(status)?;
 
-        Ok(Header{
+        Ok(Header {
             status,
-            meta: meta.to_string()
+            meta: meta.to_string(),
         })
     }
 }
 
 impl StatusCode {
     /// parses a given string and returns its equivalent [`StatusCode`]
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the given string wasn't an exact match to any status code.
     fn from_string(input: &str) -> Result<StatusCode, Error> {
         Ok(match input {
@@ -144,10 +145,12 @@ impl StatusCode {
             "60" => StatusCode::CertFail(CertFailCode::CertRequired),
             "61" => StatusCode::CertFail(CertFailCode::CertNotAuthorized),
             "62" => StatusCode::CertFail(CertFailCode::CertNotValid),
-            _ => return Err(Error::HeaderFormat(
-                    format!("Header status code ({}) was not recognized",
-                    input)
-                ))
+            _ => {
+                return Err(Error::HeaderFormat(format!(
+                    "Header status code ({}) was not recognized",
+                    input
+                )))
+            }
         })
     }
 }
@@ -172,7 +175,7 @@ impl std::fmt::Display for StatusCode {
             StatusCode::FailPermanent(FailPermanentCode::BadRequest) => "59",
             StatusCode::CertFail(CertFailCode::CertRequired) => "60",
             StatusCode::CertFail(CertFailCode::CertNotAuthorized) => "61",
-            StatusCode::CertFail(CertFailCode::CertNotValid) => "62"
+            StatusCode::CertFail(CertFailCode::CertNotValid) => "62",
         };
 
         write!(f, "{}", val)
