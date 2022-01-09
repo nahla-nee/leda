@@ -101,7 +101,7 @@ impl Client {
     /// use leda::gemini::Client;
     /// use std::time::Duration;
     /// 
-    /// let client = Client::new().unwrap();
+    /// let mut client = Client::new().unwrap();
     /// // A timeout of 5 seconds
     /// client.set_timeout(Some(Duration::from_secs(5)));
     /// // No timeout

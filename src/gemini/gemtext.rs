@@ -1,4 +1,5 @@
 use core::slice;
+use std::fmt::Write;
 
 use super::Error;
 
@@ -6,7 +7,10 @@ use super::Error;
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Gemtext <'a>{
-    pub elements: Vec<Element<'a>>
+    /// List of elements.
+    pub elements: Vec<Element<'a>>,
+    /// The total length of every string in this document. Helps parsers preallocate strings.
+    pub total_len: usize
 }
 
 /// Represents the varying elements a gemtext document can have.
@@ -23,8 +27,8 @@ pub enum Element<'a> {
     Subheading(&'a str),
     /// Sub-sub-header
     Subsubheading(&'a str),
-    /// An item in unordered list
-    UnorederedListItem(&'a str),
+    /// An unoredered list, each item in the vector is a list item.
+    UnorederedList(Vec<&'a str>),
     /// A block quote
     BlockQuote(&'a str),
     /// An unspecified number of lines that have been preformatted.
@@ -60,8 +64,9 @@ impl<'a> Gemtext<'a> {
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
+        let mut total_len = 0;
 
-        let mut lines = input.lines();
+        let mut lines = input.lines().peekable();
         while let Some(line) = lines.next() {
             if let Some(line) = line.strip_prefix("=>") {
                 let text = line.trim_start();
@@ -80,26 +85,50 @@ impl<'a> Gemtext<'a> {
                 };
 
                 elements.push(Element::Link(url, text));
+                total_len += url.len() + text.len();
             }
             else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
                 elements.push(Element::Subsubheading(text));
+                total_len += text.len();
             }
             else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
                 elements.push(Element::Subheading(text));
+                total_len += text.len();
             }
             else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
                 elements.push(Element::Heading(text));
+                total_len += text.len();
             }
             else if let Some(line) = line.strip_prefix('*') {
+                let mut list = Vec::new();
+
                 let text = line.trim_start();
-                elements.push(Element::UnorederedListItem(text));
+                list.push(text);
+                total_len += text.len();
+
+                // Can't use for loop here because it would consume the iterator.
+                while let Some(line) = lines.peek() {
+                    if let Some(line) = line.strip_prefix('*') {
+                        let text = line.trim_start();
+                        list.push(text);
+                        total_len += text.len();
+
+                        lines.next();
+                    }
+                    else {
+                        break;
+                    }
+                }
+
+                elements.push(Element::UnorederedList(list));
             }
             else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
                 elements.push(Element::BlockQuote(text));
+                total_len += text.len();
             }
             else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
@@ -119,14 +148,17 @@ impl<'a> Gemtext<'a> {
                 };
 
                 elements.push(Element::Preformatted(text));
+                total_len += text.len();
             }
             else {
                 elements.push(Element::Text(line));
+                total_len += line.len();
             }
         }
 
         Ok(Gemtext {
-            elements
+            elements,
+            total_len
         })
     }
 
@@ -140,12 +172,14 @@ impl<'a> Gemtext<'a> {
     /// let example_doc = "# Example raw gemtext header\n\
     ///                    I'm a paragraph!\n\
     ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
-    /// let parsed_doc = gemtext::Gemtext::parse_to_html(example_doc).unwrap();
+    /// let parsed_doc = gemtext::Gemtext::new(example_doc)
+    ///     .expect("Failed to parse gemtext")
+    ///     .to_html();
     /// let expected_result = concat!(
     ///                        "<h1>Example raw gemtext header</h1>\n",
     ///                        "<p></p>\n",
     ///                        "<p>I'm a paragraph!</p>\n",
-    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n"
+    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n",
     ///                        "<p></p>\n");
     /// assert_eq!(expected_result, parsed_doc)
     /// ```
@@ -153,71 +187,52 @@ impl<'a> Gemtext<'a> {
     /// # Errors
     /// 
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
-    pub fn parse_to_html(input: &'a str) -> Result<String, Error> {
-        let gemtext = Self::new(input)?;
-        // This allocation will be a bit too short but should be close enough to only result in
-        // one or two reallocations at most
-        let mut result = String::with_capacity(input.len());
+    #[must_use]
+    pub fn to_html(&self) -> String {
+        // approximate resulting length, this will be too short but it should be close enough.
+        // should only result in one or two reallocations.
+        let mut result = String::with_capacity(self.total_len);
 
-        let mut elements = gemtext.elements.into_iter().peekable();
-        while let Some(element) = elements.next() {
+        for element in &self.elements {
             match element {
                 Element::Text(text) => {
-                    result += "<p>";
-                    result += text;
-                    result += "</p>\n";
+                    let _ = writeln!(&mut result, "<p>{}</p>", text);
+                    // every elements gets "<p></p>" appended to it so that it can be on its own line
+                    // paragraph elements don't need that since they already will do that by default.
+                    continue;
                 },
                 Element::Link(link, text) => {
-                    result += "<a href=\"";
-                    result += link;
-                    result += "\">";
-                    result += text;
-                    result += "</a>\n<p></p>\n";
+                    let _ = writeln!(&mut result, "<a href=\"{}\">{}</a>", link, text);
                 },
                 Element::Heading(text) => {
-                    result += "<h1>";
-                    result += text;
-                    result += "</h1>\n<p></p>\n";
+                    let _ = writeln!(&mut result, "<h1>{}</h1>", text);
                 },
                 Element::Subheading(text) => {
-                    result += "<h2>";
-                    result += text;
-                    result += "</h2>\n<p></p>\n";
+                    let _ = writeln!(&mut result, "<h2>{}</h2>", text);
                 },
                 Element::Subsubheading(text) => {
-                    result += "<h3>";
-                    result += text;
-                    result += "</h3>\n<p></p>\n";
+                    let _ = writeln!(&mut result, "<h3>{}</h3>", text);
                 },
-                Element::UnorederedListItem(text) => {
+                Element::UnorederedList(list) => {
                     result += "<ul>\n";
 
-                    result += "<li>";
-                    result += text;
-                    result += "</li>\n<p></p>\n";
-                    while let Some(Element::UnorederedListItem(item)) = elements.peek() {
-                        result += "<li>";
-                        result += *item;
-                        result += "</li>\n<p></p>\n";
-
-                        elements.next();
+                    for item in list {
+                        let _ = writeln!(&mut result, "<li>{}</li>", item);
+                        result += "<p></p>\n";
                     }
 
-                    result += "</ul>\n<p></p>\n";
+                    result += "</ul>\n";
                 },
                 Element::BlockQuote(text) => {
-                    result += "<blockquote>";
-                    result += text;
-                    result += "</blockquote>\n<p></p>\n";
+                    let _ = writeln!(&mut result, "<blockquote>{}</blockquote>", text);
                 },
                 Element::Preformatted(text) => {
-                    result += "<pre>";
-                    result += text;
-                    result += "</pre>\n<p></p>\n";
-                },
+                    let _ = writeln!(&mut result, "<pre>{}</pre>", text);
+                }
             }
+            result += "<p></p>\n";
         }
 
-        Ok(result)
+        result
     }
 }

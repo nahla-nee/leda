@@ -11,9 +11,10 @@
 //! 
 //! ```no_run
 //! use leda::gemini::{self, gemtext::Gemtext};
+//! use std::time::Duration;
 //! 
 //! 
-//! let url = String::from("gemini://gemini.circumlunar.space/")
+//! let url = String::from("gemini://gemini.circumlunar.space/");
 //! 
 //! let mut client = gemini::Client::builder()
 //!     .timeout(Some(Duration::from_secs(5)))
@@ -23,16 +24,17 @@
 //! let response = client.request(url)
 //!     .expect("Failed to retrieve gemini page");
 //! 
-//! let body = match &response.header {
-//!     gemini::header::StatusCode::Success => &response.body,
+//! let body = match &response.header.status {
+//!     gemini::header::StatusCode::Success => response.body.as_ref().unwrap(),
 //!     // you can handle differents errors, redirects, and input requests as you see fit from
 //!     // here on!
 //!     _ => panic!("Page requested didn't return a body!")
-//! }
-//! let body = std::str::from_utf8(body)
+//! };
+//! let body = std::str::from_utf8(&body)
 //!     .expect("Failed to parse body as utf8");
-//! let html = Gemtext::parse_to_html(body)
-//!     .expect("Failed to parse body as gemtext");
+//! let html = Gemtext::new(body)
+//!     .expect("Failed to parse body as gemtext")
+//!     .to_html();
 //! 
 //! println!("raw body: \n{}\n", body);
 //! println!("html body: \n{}\n", html);
@@ -45,7 +47,7 @@ pub mod py_bindings;
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
-    use super::gemini::{self, gemtext};
+    use super::gemini::{self, gemtext::Gemtext};
 
     #[test]
     fn full_test() {
@@ -62,8 +64,9 @@ mod tests {
         let body = &response.body.expect("Body was none!");
         let body = std::str::from_utf8(body)
             .expect("Failed to parse body as utf8");
-        let html = gemtext::Gemtext::parse_to_html(body)
-            .expect("Failed to parse body as gemtext");
+        let html = Gemtext::new(body)
+            .expect("Failed to parse body as gemtext")
+            .to_html();
 
         println!("body:\n{}\n", body);
         println!("html:\n{}\n", html);
