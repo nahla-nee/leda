@@ -1,20 +1,3 @@
-# Leda
-
-A crate that implements the client logic for several small internet protocols. Currently only
-supports gemini but with plans to support other protocols such as finger, and gopher.
-
-## Cargo Features
-
-- **py_bindings**: generates bindings for python
-
-## Get started
-
-This is a minimal example to show what using this library is like. It will grab the gemini homepage
-and print it's contents both in the plain gemtext format and as html.
-
-You can run this example by running `cargo run --example readme`.
-
-```rs
 use leda::gemini::{self, gemtext::Gemtext};
 use std::time::Duration;
 
@@ -51,4 +34,3 @@ fn main() {
     println!("raw body: \n{}\n", body);
     println!("html body: \n{}\n", html);
 }
-```
