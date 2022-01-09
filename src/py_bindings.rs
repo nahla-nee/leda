@@ -67,63 +67,14 @@ impl Response {
 #[pyclass(name = "Gemtext")]
 #[derive(Clone)]
 pub struct PyGemtext {
-    #[pyo3(get)]
-    elements: Vec<PyGemtextElement>
-}
-
-
-#[pyclass(name = "GemtextElement")]
-#[derive(Clone)]
-pub struct PyGemtextElement {
-    #[pyo3(get)]
-    format: u32, // pyo3 doesn't have great enum representation so python just has to deal with u32
-    #[pyo3(get)]
-    value: String,
-    #[pyo3(get)]
-    link_text: Option<String> // only Some if format is a Link
 }
 
 #[pymethods]
 impl PyGemtext {
-    #[new]
-    pub fn new(input: &str) -> Result<PyGemtext, Error> {
-        let gemtext = Gemtext::new(input)?;
-        let mut elements = Vec::with_capacity(gemtext.elements.len());
-
-        for element in gemtext.elements {
-            let values = match element {
-                Element::Text(text) => (0, text.to_string(), None),
-                Element::Link(text, link) => (1, text.to_string(), Some(link.to_string())),
-                Element::Heading(text) => (2, text.to_string(), None),
-                Element::Subheading(text) => (3, text.to_string(), None),
-                Element::Subsubheading(text) => (4, text.to_string(), None),
-                Element::UnorederedListItem(text) => (5, text.to_string(), None),
-                Element::BlockQuote(text) => (6, text.to_string(), None),
-                Element::Preformatted(text) => (7, text.to_string(), None)
-            };
-
-            elements.push(PyGemtextElement::new(values.0, values.1, values.2));
-        };
-
-        Ok(PyGemtext{
-            elements
-        })
-    }
-
     #[staticmethod]
-    pub fn parse_to_html(input: &str) -> Result<String, Error> {
-        Gemtext::parse_to_html(input)
-    }
-}
-
-#[cfg(feature = "py_bindings")]
-impl PyGemtextElement {
-    pub fn new(format: u32, value: String, link_text: Option<String>) -> PyGemtextElement {
-        PyGemtextElement {
-            format,
-            value,
-            link_text
-        }
+    pub fn to_html(input: &str) -> Result<String, Error> {
+        let gemtext = Gemtext::new(input)?;
+        Ok(gemtext.to_html())
     }
 }
 
@@ -132,7 +83,6 @@ pub(crate) fn gemini(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Client>()?;
     m.add_class::<Response>()?;
     m.add_class::<PyGemtext>()?;
-    m.add_class::<PyGemtextElement>()?;
 
     Ok(())
 }
