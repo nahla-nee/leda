@@ -184,6 +184,6 @@ impl std::fmt::Display for StatusCode {
 
 impl std::fmt::Display for Header {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.status.to_string(), self.meta)
+        write!(f, "{}: {}", self.status, self.meta)
     }
 }
