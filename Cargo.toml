@@ -14,4 +14,4 @@ py_bindings = ["pyo3"]
 openssl = { version = "0.10", features = ["vendored"] }
 url = "2.2.2"
 thiserror = "1.0.30"
-pyo3 = { version = "0.15.1", optional = true }
+pyo3 = { version = "0.15.1", features = ["extension-module"], optional = true }
