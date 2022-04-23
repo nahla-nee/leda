@@ -2,8 +2,16 @@ use std::time::Duration;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
+use pyo3::exceptions::{PyIOError, PyValueError};
 
-use super::gemini::{gemtext::*, header::*, *};
+use super::gemini::{
+    gemtext::Gemtext,
+    header::{CertFailCode, FailPermanentCode, FailTemporaryCode, InputCode,
+        RedirectCode, StatusCode},
+    Client,
+    Error,
+    Response
+};
 
 #[pymethods]
 impl Client {
@@ -72,6 +80,21 @@ impl PyGemtext {
     pub fn to_html(input: &str) -> Result<String, Error> {
         let gemtext = Gemtext::new(input)?;
         Ok(gemtext.to_html())
+    }
+}
+
+impl std::convert::From<Error> for PyErr {
+    fn from(err: Error) -> Self {
+        match err {
+            Error::HeaderFormat(_)
+            | Error::UrlParse(_)
+            | Error::UrlNoHost(_)
+            | Error::GemtextFormat(_)
+            | Error::UrlNoAddress(_) => PyValueError::new_err(err.to_string()),
+            Error::TCPConnect(_) | Error::TLSClient(_) | Error::StreamIO(_, _) => {
+                PyIOError::new_err(err.to_string())
+            }
+        }
     }
 }
 
