@@ -47,8 +47,6 @@
 //! ```
 
 pub mod gemini;
-#[cfg(feature = "py_bindings")]
-pub mod py_bindings;
 
 #[cfg(test)]
 mod tests {

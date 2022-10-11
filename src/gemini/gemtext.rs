@@ -4,7 +4,6 @@ use std::fmt::Write;
 use super::Error;
 
 /// Represents a gemtext document by element, line by line.
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Gemtext<'a> {
     /// List of elements.

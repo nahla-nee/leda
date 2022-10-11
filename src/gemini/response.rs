@@ -1,11 +1,7 @@
 use super::header;
 
-#[cfg(feature = "py_bindings")]
-use pyo3::prelude::*;
-
 /// Represents a response generated from a gemini server.
 #[derive(Clone)]
-#[cfg_attr(all(feature = "py_bindings"), pyclass)]
 pub struct Response {
     /// The header the server responded with, includes the response status code as well as the meta
     /// information provided.

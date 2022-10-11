@@ -10,9 +10,6 @@ use url;
 
 use openssl::ssl;
 
-#[cfg(feature = "py_bindings")]
-use pyo3::prelude::*;
-
 /// Create a client using a builder pattern.
 pub struct Builder {
     timeout: Option<Duration>,
@@ -52,7 +49,6 @@ impl Default for Builder {
 }
 
 /// Represents a client which will make gemini connections.
-#[cfg_attr(all(feature = "py_bindings"), pyclass)]
 #[derive(Clone)]
 pub struct Client {
     connector: ssl::SslConnector,
