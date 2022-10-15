@@ -8,6 +8,6 @@ name = "leda"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
+rustls = { version = "0.20.6", features = ["dangerous_configuration"] }
 url = "2.2.2"
 thiserror = "1.0.30"
