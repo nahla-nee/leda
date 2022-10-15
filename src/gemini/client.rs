@@ -1,14 +1,14 @@
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
+use std::sync::Arc;
 use std::time::Duration;
 
 use super::error::Error;
 use super::header::Header;
 use super::response::Response;
 
+use rustls::client::ServerCertVerifier;
 use url;
-
-use openssl::ssl;
 
 /// Create a client using a builder pattern.
 pub struct Builder {
@@ -48,10 +48,25 @@ impl Default for Builder {
     }
 }
 
+struct NoCertVerification;
+
+impl ServerCertVerifier for NoCertVerification {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::Certificate,
+        _intermediates: &[rustls::Certificate],
+        _server_name: &rustls::ServerName,
+        _scts: &mut dyn Iterator<Item = &[u8]>,
+        _ocsp_response: &[u8],
+        _now: std::time::SystemTime,
+    ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::ServerCertVerified::assertion())
+    }
+}
+
 /// Represents a client which will make gemini connections.
-#[derive(Clone)]
 pub struct Client {
-    connector: ssl::SslConnector,
+    tls_config: Arc<rustls::ClientConfig>,
     timeout: Option<Duration>,
 }
 
@@ -70,13 +85,15 @@ impl Client {
     ///
     /// Will return an [`Error::TLSClient`] if creating a TLS connector failed.
     pub fn new() -> Result<Client, Error> {
-        let mut builder =
-            ssl::SslConnector::builder(ssl::SslMethod::tls()).map_err(Error::TLSClient)?;
-        builder.set_verify(ssl::SslVerifyMode::NONE);
-        let connector = builder.build();
+        let tls_config = Arc::new(
+            rustls::ClientConfig::builder()
+                .with_safe_defaults()
+                .with_custom_certificate_verifier(Arc::new(NoCertVerification))
+                .with_no_client_auth(),
+        );
 
         Ok(Client {
-            connector,
+            tls_config,
             timeout: None,
         })
     }
@@ -115,7 +132,7 @@ impl Client {
     /// use leda::gemini::Client;
     ///
     /// let mut client = Client::new().unwrap();
-    /// let response = client.request("gemini://gemini.circumlunar.space/".to_string());
+    /// let response = client.request(String::from("gemini://gemini.circumlunar.space/"));
     /// ```
     ///
     /// # Errors
@@ -134,7 +151,7 @@ impl Client {
         let (host, server_name) = {
             let url_parsed = url::Url::parse(&url).map_err(Error::UrlParse)?;
             // We can't use ok_or_else here because that would consume `url` regardless of whether
-            // the value is Some or None, and we use url later so it most not be moved.
+            // the value is Some or None, and we use url later so it must not be moved.
             let host_str = match url_parsed.host_str() {
                 Some(str) => str,
                 None => return Err(Error::UrlNoHost(url)),
@@ -145,28 +162,39 @@ impl Client {
         };
 
         // Connect to the server and establish a TLS connection.
-        let stream = if let Some(timeout) = self.timeout {
-            let addrs = host.to_socket_addrs().map_err(Error::TCPConnect)?;
-            let mut addrs: Vec<_> = addrs.collect();
-            if addrs.is_empty() {
+        let rustls_server_name = server_name.as_str().try_into().unwrap();
+        let mut conn =
+            rustls::ClientConnection::new(self.tls_config.clone(), rustls_server_name).unwrap();
+
+        // Connect, with timeout if requested
+        let mut stream = if let Some(timeout) = self.timeout {
+            // Get all host addresses so we can attempt to connect to till we get a successful connection
+            let mut addresses = host
+                .to_socket_addrs()
+                .map_err(|e| Error::TCPConnect(e, (&host).clone()))?
+                .peekable();
+            if addresses.peek().is_none() {
                 return Err(Error::UrlNoAddress(host));
             }
 
-            let tail = addrs.pop().unwrap();
-            let head = addrs
-                .into_iter()
-                .map(|addr| TcpStream::connect_timeout(&addr, timeout))
-                .find(Result::is_ok);
-            if let Some(x) = head {
-                x
-            } else {
-                TcpStream::connect_timeout(&tail, timeout)
+            // do this to shut the compiler up, we'll unwrap later because we know it has something in it
+            let mut result = None;
+            for address in addresses {
+                match TcpStream::connect_timeout(&address, timeout) {
+                    Ok(r) => {
+                        result = Some(Ok(r));
+                        break;
+                    }
+                    Err(e) => result = Some(Err(e)),
+                }
             }
-            .map_err(Error::TCPConnect)
+            result.unwrap()
         } else {
-            TcpStream::connect(&host).map_err(Error::TCPConnect)
-        }?;
-        let mut stream = self.connector.connect(&server_name, stream).unwrap();
+            TcpStream::connect(host.clone())
+        }
+        .map_err(|e| Error::TCPConnect(e, (&host).clone()))?;
+
+        let mut tls = rustls::Stream::new(&mut conn, &mut stream);
 
         // Check that the URL given to us is proper, the Gemini protocol specifies all URL requests
         // must end in <CR><LF>.
@@ -174,15 +202,13 @@ impl Client {
             url += "\r\n";
         }
 
-        stream
-            .write(url.as_bytes())
+        tls.write(url.as_bytes())
             .map_err(|e| Error::StreamIO("Failed to send request to server", e))?;
 
         // We can't parse this as a string yet, we can be confident-ish that the header is UTF-8,
         // but we have no idea what the body is.
         let mut response = Vec::new();
-        stream
-            .read_to_end(&mut response)
+        tls.read_to_end(&mut response)
             .map_err(|e| Error::StreamIO("Failed to read resposne from server", e))?;
 
         // The Gemini protocol specifies that the response must have a header, and optionally a body
