@@ -2,6 +2,8 @@
 name = "leda"
 version = "0.1.0"
 edition = "2021"
+license = "GPL-3.0-or-later"
+description = "A gemini client backend"
 
 [lib]
 name = "leda"
@@ -11,3 +13,4 @@ crate-type = ["lib", "cdylib"]
 rustls = { version = "0.20.6", features = ["dangerous_configuration"] }
 url = "2.2.2"
 thiserror = "1.0.30"
+
