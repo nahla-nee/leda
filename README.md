@@ -3,10 +3,6 @@
 A crate that implements the client logic for several small internet protocols. Currently only
 supports gemini but with plans to support other protocols such as finger, and gopher.
 
-## Cargo Features
-
-- **py_bindings**: generates bindings for python
-
 ## Get started
 
 This is a minimal example to show what using this library is like. It will grab the gemini homepage
