@@ -5,36 +5,36 @@ use super::Error;
 
 /// Represents a gemtext document by element, line by line.
 #[derive(Debug)]
-pub struct Gemtext<'a> {
+pub struct Gemtext {
     /// List of elements.
-    pub elements: Vec<Element<'a>>,
+    pub elements: Vec<Element>,
     /// The total length of every string in this document. Helps parsers preallocate strings.
     pub total_len: usize,
 }
 
 /// Represents the varying elements a gemtext document can have.
 #[derive(Debug, PartialEq, Eq)]
-pub enum Element<'a> {
+pub enum Element {
     /// Text without any specific formatting, to be treated like a paragraph
-    Text(&'a str),
+    Text(String),
     /// A link, the first member of the tuple is where the link goes to, the second member is the
     /// human readable text to display for this link.
-    Link(&'a str, &'a str),
+    Link(String, String),
     /// Header
-    Heading(&'a str),
+    Heading(String),
     /// Sub-header
-    Subheading(&'a str),
+    Subheading(String),
     /// Sub-sub-header
-    Subsubheading(&'a str),
+    Subsubheading(String),
     /// An unoredered list, each item in the vector is a list item.
-    UnorederedList(Vec<&'a str>),
+    UnorderedList(Vec<String>),
     /// A block quote
-    BlockQuote(&'a str),
+    BlockQuote(String),
     /// An unspecified number of lines that have been preformatted.
-    Preformatted(&'a str),
+    Preformatted(String),
 }
 
-impl<'a> Gemtext<'a> {
+impl<'a> Gemtext {
     /// Creates a new [`Gemtext`] document from the given string.
     ///
     /// # Examples
@@ -48,10 +48,10 @@ impl<'a> Gemtext<'a> {
     /// let parsed_doc = Gemtext::new(example_doc)
     ///     .expect("Failed to parse gemtext document");
     /// let expected_result = [
-    ///                        gemtext::Element::Heading("Example gemtext header"),
-    ///                        gemtext::Element::Text("I'm a paragraph!"),
-    ///                        gemtext::Element::Link("gemini://gemini.circumlunar.space/",
-    ///                             "gemini homepage link")
+    ///                        gemtext::Element::Heading(String::from("Example gemtext header")),
+    ///                        gemtext::Element::Text(String::from("I'm a paragraph!")),
+    ///                        gemtext::Element::Link(String::from("gemini://gemini.circumlunar.space/"),
+    ///                             String::from("gemini homepage link"))
     ///                       ];
     /// for (real, expected) in parsed_doc.elements.iter().zip(expected_result.iter()) {
     ///     assert_eq!(real, expected);
@@ -61,7 +61,7 @@ impl<'a> Gemtext<'a> {
     /// # Errors
     ///
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
-    pub fn new(input: &'a str) -> Result<Gemtext<'a>, Error> {
+    pub fn new(input: &'a str) -> Result<Gemtext, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
         let mut total_len = 0;
 
@@ -85,32 +85,32 @@ impl<'a> Gemtext<'a> {
                     (text, text)
                 };
 
-                elements.push(Element::Link(url, text));
+                elements.push(Element::Link(url.to_string(), text.to_string()));
                 total_len += url.len() + text.len();
             } else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
-                elements.push(Element::Subsubheading(text));
+                elements.push(Element::Subsubheading(text.to_string()));
                 total_len += text.len();
             } else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
-                elements.push(Element::Subheading(text));
+                elements.push(Element::Subheading(text.to_string()));
                 total_len += text.len();
             } else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
-                elements.push(Element::Heading(text));
+                elements.push(Element::Heading(text.to_string()));
                 total_len += text.len();
             } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
                 let text = line.trim_start();
-                list.push(text);
+                list.push(text.to_string());
                 total_len += text.len();
 
                 // Can't use for loop here because it would consume the iterator.
                 while let Some(line) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
                         let text = line.trim_start();
-                        list.push(text);
+                        list.push(text.to_string());
                         total_len += text.len();
 
                         lines.next();
@@ -119,10 +119,10 @@ impl<'a> Gemtext<'a> {
                     }
                 }
 
-                elements.push(Element::UnorederedList(list));
+                elements.push(Element::UnorderedList(list));
             } else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
-                elements.push(Element::BlockQuote(text));
+                elements.push(Element::BlockQuote(text.to_string()));
                 total_len += text.len();
             } else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
@@ -141,10 +141,10 @@ impl<'a> Gemtext<'a> {
                     std::str::from_utf8_unchecked(str_slice)
                 };
 
-                elements.push(Element::Preformatted(text));
+                elements.push(Element::Preformatted(text.to_string()));
                 total_len += text.len();
             } else {
-                elements.push(Element::Text(line));
+                elements.push(Element::Text(line.to_string()));
                 total_len += line.len();
             }
         }
@@ -206,7 +206,7 @@ impl<'a> Gemtext<'a> {
                 Element::Subsubheading(text) => {
                     let _ = writeln!(&mut result, "<h3>{}</h3>", text);
                 }
-                Element::UnorederedList(list) => {
+                Element::UnorderedList(list) => {
                     result += "<ul>\n";
 
                     for item in list {
