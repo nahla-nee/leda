@@ -7,9 +7,7 @@ use super::Error;
 #[derive(Debug)]
 pub struct Gemtext {
     /// List of elements.
-    pub elements: Vec<Element>,
-    /// The total length of every string in this document. Helps parsers preallocate strings.
-    pub total_len: usize,
+    pub elements: Vec<Element>
 }
 
 /// Represents the varying elements a gemtext document can have.
@@ -63,7 +61,6 @@ impl<'a> Gemtext {
     /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
     pub fn new(input: &'a str) -> Result<Gemtext, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
-        let mut total_len = 0;
 
         let mut lines = input.lines().peekable();
         while let Some(line) = lines.next() {
@@ -86,32 +83,26 @@ impl<'a> Gemtext {
                 };
 
                 elements.push(Element::Link(url.to_string(), text.to_string()));
-                total_len += url.len() + text.len();
             } else if let Some(line) = line.strip_prefix("###") {
                 let text = line.trim_start();
                 elements.push(Element::Subsubheading(text.to_string()));
-                total_len += text.len();
             } else if let Some(line) = line.strip_prefix("##") {
                 let text = line.trim_start();
                 elements.push(Element::Subheading(text.to_string()));
-                total_len += text.len();
             } else if let Some(line) = line.strip_prefix('#') {
                 let text = line.trim_start();
                 elements.push(Element::Heading(text.to_string()));
-                total_len += text.len();
             } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
                 let text = line.trim_start();
                 list.push(text.to_string());
-                total_len += text.len();
-
+                
                 // Can't use for loop here because it would consume the iterator.
                 while let Some(line) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
                         let text = line.trim_start();
                         list.push(text.to_string());
-                        total_len += text.len();
 
                         lines.next();
                     } else {
@@ -123,7 +114,6 @@ impl<'a> Gemtext {
             } else if let Some(line) = line.strip_prefix('>') {
                 let text = line.trim_start();
                 elements.push(Element::BlockQuote(text.to_string()));
-                total_len += text.len();
             } else if let Some(line) = line.strip_prefix("```") {
                 let start = line.as_ptr();
                 let mut len = line.len();
@@ -142,16 +132,13 @@ impl<'a> Gemtext {
                 };
 
                 elements.push(Element::Preformatted(text.to_string()));
-                total_len += text.len();
             } else {
                 elements.push(Element::Text(line.to_string()));
-                total_len += line.len();
             }
         }
 
         Ok(Gemtext {
             elements,
-            total_len,
         })
     }
 
@@ -184,7 +171,7 @@ impl<'a> Gemtext {
     pub fn to_html(&self) -> String {
         // approximate resulting length, this will be too short but it should be close enough.
         // should only result in one or two reallocations.
-        let mut result = String::with_capacity(self.total_len);
+        let mut result = String::new();
 
         for element in &self.elements {
             match element {

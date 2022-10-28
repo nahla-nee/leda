@@ -1,4 +1,4 @@
-use super::error::Error;
+use super::Error;
 
 /// Represents the header sent back from a server's response.
 #[derive(Clone)]

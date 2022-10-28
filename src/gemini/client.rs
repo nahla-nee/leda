@@ -3,7 +3,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
 
-use super::error::Error;
+use super::Error;
 use super::header::Header;
 use super::response::Response;
 
