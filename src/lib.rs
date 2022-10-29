@@ -69,7 +69,7 @@ mod tests {
         };
 
         let body = std::str::from_utf8(body).expect("Failed to parse body as utf8");
-
+        assert!(Gemtext::new(body).is_ok());
         println!("body:\n{}\n", body);
     }
 }
