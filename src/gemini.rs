@@ -32,7 +32,7 @@ pub enum Error {
     #[error("Couldn't connect to address {1}, TCP connection error: {0}")]
     TCPConnect(std::io::Error, String),
     #[error("Stream IO failure, {0}: {1}")]
-    StreamIO(&'static str, io::Error),
+    StreamIO(&'static str, std::io::Error),
     #[error("Malformed gemtext document: {0}")]
     GemtextFormat(String),
 }
