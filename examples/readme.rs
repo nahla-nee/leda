@@ -24,10 +24,6 @@ fn main() {
     };
 
     let body = std::str::from_utf8(&body).expect("Failed to parse body as utf8");
-    let html = Gemtext::new(body)
-        .expect("Failed to parse body as gemtext")
-        .to_html();
 
     println!("raw body: \n{}\n", body);
-    println!("html body: \n{}\n", html);
 }
