@@ -2,8 +2,6 @@
 
 /// Make gemini requests and parse their responses.
 mod client;
-/// The error type returned by functions in this module.
-mod error;
 /// Represent and parse gemtext documents.
 pub mod gemtext;
 /// Represent a gemini response's header.
@@ -18,7 +16,7 @@ use std::io;
 use thiserror::Error;
 use url::ParseError;
 
-/// Represents the different error types this submodule returns
+/// Represents the different error types this module returns
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Header is malformed: {0}")]
