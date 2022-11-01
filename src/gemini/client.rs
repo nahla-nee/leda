@@ -57,7 +57,7 @@ impl Client {
     /// use leda::gemini::Client;
     /// use std::time::Duration;
     /// 
-    /// let client = Client::with_timeout(Some(Duration::new(5, 0)))
+    /// let client = Client::with_timeout(Some(Duration::new(5, 0)));
     /// ```
     /// 
     /// Will return a [`Error::TLSClient`] if creating a TLS connector failed.

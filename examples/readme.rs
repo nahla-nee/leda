@@ -4,9 +4,7 @@ use std::time::Duration;
 fn main() {
     let url = String::from("gemini://gemini.circumlunar.space/");
 
-    let mut client = gemini::Client::builder()
-        .timeout(Some(Duration::from_secs(5)))
-        .build()
+    let mut client = gemini::Client::with_timeout(Some(Duration::from_secs(5)))
         .expect("Failed to create gemini client");
 
     let response = client.request(url).expect("Failed to retrieve gemini page");
