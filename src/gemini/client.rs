@@ -10,44 +10,6 @@ use super::response::Response;
 use rustls::client::ServerCertVerifier;
 use url;
 
-/// Create a client using a builder pattern.
-pub struct Builder {
-    timeout: Option<Duration>,
-}
-
-impl Builder {
-    /// Create a new client builder.
-    #[must_use]
-    pub fn new() -> Builder {
-        Builder { timeout: None }
-    }
-
-    /// Set the timeout for the client's connections.
-    #[must_use]
-    pub fn timeout(mut self, timeout: Option<Duration>) -> Builder {
-        self.timeout = timeout;
-        self
-    }
-
-    /// Create a client from the given builder.
-    ///
-    /// # Errors
-    ///
-    /// Will return an [`Error::TLSClient`] if creating a TLS connector failed.
-    pub fn build(self) -> Result<Client, Error> {
-        let mut client = Client::new()?;
-        client.set_timeout(self.timeout);
-
-        Ok(client)
-    }
-}
-
-impl Default for Builder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 struct NoCertVerification;
 
 impl ServerCertVerifier for NoCertVerification {
@@ -83,8 +45,23 @@ impl Client {
     ///
     /// # Errors
     ///
-    /// Will return an [`Error::TLSClient`] if creating a TLS connector failed.
+    /// Will return a [`Error::TLSClient`] if creating a TLS connector failed.
     pub fn new() -> Result<Client, Error> {
+        Self::with_timeout(None)
+    }
+
+    /// Creates a client that can be used to make gemini requests with a timeout
+    /// 
+    /// # Example
+    /// ```
+    /// use leda::gemini::Client;
+    /// use std::time::Duration;
+    /// 
+    /// let client = Client::with_timeout(Some(Duration::new(5, 0)))
+    /// ```
+    /// 
+    /// Will return a [`Error::TLSClient`] if creating a TLS connector failed.
+    pub fn with_timeout(timeout: Option<Duration>) -> Result<Client, Error> {
         let tls_config = Arc::new(
             rustls::ClientConfig::builder()
                 .with_safe_defaults()
@@ -94,7 +71,7 @@ impl Client {
 
         Ok(Client {
             tls_config,
-            timeout: None,
+            timeout,
         })
     }
 
