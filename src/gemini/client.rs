@@ -75,12 +75,6 @@ impl Client {
         })
     }
 
-    /// Returns a client builder that can be used to build a [`Client`].
-    #[must_use]
-    pub fn builder() -> Builder {
-        Builder::new()
-    }
-
     /// Sets the timeout for the client.
     ///
     /// # Examples
