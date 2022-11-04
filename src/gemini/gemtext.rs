@@ -15,8 +15,8 @@ pub struct Gemtext {
 pub enum Element {
     /// Text without any specific formatting, to be treated like a paragraph
     Text(String),
-    /// A link, the first member of the tuple is where the link goes to, the second member is the
-    /// human readable text to display for this link.
+    /// A link, the first member of the tuple is the human readable text to
+    /// display for this link, the second member is where the link goes to .
     Link(String, String),
     /// Header
     Heading(String),
@@ -75,7 +75,7 @@ impl<'a> Gemtext {
                     )));
                 }
 
-                let (url, text) = if let Some(index) = text.find(char::is_whitespace) {
+                let (text, url) = if let Some(index) = text.find(char::is_whitespace) {
                     let split = text.split_at(index);
                     (split.0, split.1.trim_start())
                 } else {
