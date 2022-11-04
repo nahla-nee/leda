@@ -47,8 +47,8 @@ impl<'a> Gemtext {
     /// let expected_result = [
     ///                        gemtext::Element::Heading(String::from("Example gemtext header")),
     ///                        gemtext::Element::Text(String::from("I'm a paragraph!")),
-    ///                        gemtext::Element::Link(String::from("gemini://gemini.circumlunar.space/"),
-    ///                             String::from("gemini homepage link"))
+    ///                        gemtext::Element::Link(String::from("gemini homepage link"),
+    ///                             String::from("gemini://gemini.circumlunar.space/"))
     ///                       ];
     /// for (real, expected) in parsed_doc.elements.iter().zip(expected_result.iter()) {
     ///     assert_eq!(real, expected);
@@ -97,7 +97,7 @@ impl<'a> Gemtext {
                 let text = line.trim_start();
                 list.push(text.to_string());
                 
-                // Can't use for loop here because it would consume the iterator.
+                // Can't use for loop here because we'd have two mut references.
                 while let Some(line) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
                         let text = line.trim_start();
