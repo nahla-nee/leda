@@ -1,5 +1,4 @@
 use core::slice;
-use std::fmt::Write;
 
 use super::Error;
 
@@ -63,15 +62,15 @@ impl<'a> Gemtext {
         let mut elements = Vec::with_capacity(input.lines().count());
 
         let mut lines = input.lines().peekable();
-        while let Some(line) = lines.next() {
+        for (index, line) in input.lines().enumerate() {
             if let Some(line) = line.strip_prefix("=>") {
                 let text = line.trim_start();
                 if text.is_empty() {
                     // invalid link has no value.
                     return Err(Error::GemtextFormat(format!(
                         "Invalid link format, there must be \
-                        something after =>. Line: {}",
-                        line.trim()
+                        something after =>. Line #{}: {}",
+                        index+1, line.trim()
                     )));
                 }
 
@@ -140,79 +139,5 @@ impl<'a> Gemtext {
         Ok(Gemtext {
             elements,
         })
-    }
-
-    /// Creates an html [`String`] to represent the given gemtext document
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use leda::gemini::gemtext;
-    ///
-    /// let example_doc = "# Example raw gemtext header\n\
-    ///                    I'm a paragraph!\n\
-    ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
-    /// let parsed_doc = gemtext::Gemtext::new(example_doc)
-    ///     .expect("Failed to parse gemtext")
-    ///     .to_html();
-    /// let expected_result = concat!(
-    ///                        "<h1>Example raw gemtext header</h1>\n",
-    ///                        "<p></p>\n",
-    ///                        "<p>I'm a paragraph!</p>\n",
-    ///                        "<a href=\"gemini://gemini.circumlunar.space/\">gemini homepage link</a>\n",
-    ///                        "<p></p>\n");
-    /// assert_eq!(expected_result, parsed_doc)
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Will return an [`Error::GemtextFormat`] if there was a problem with parsing the document.
-    #[must_use]
-    pub fn to_html(&self) -> String {
-        // approximate resulting length, this will be too short but it should be close enough.
-        // should only result in one or two reallocations.
-        let mut result = String::new();
-
-        for element in &self.elements {
-            match element {
-                Element::Text(text) => {
-                    let _ = writeln!(&mut result, "<p>{}</p>", text);
-                    // every elements gets "<p></p>" appended to it so that it can be on its own line
-                    // paragraph elements don't need that since they already will do that by default.
-                    continue;
-                }
-                Element::Link(link, text) => {
-                    let _ = writeln!(&mut result, "<a href=\"{}\">{}</a>", link, text);
-                }
-                Element::Heading(text) => {
-                    let _ = writeln!(&mut result, "<h1>{}</h1>", text);
-                }
-                Element::Subheading(text) => {
-                    let _ = writeln!(&mut result, "<h2>{}</h2>", text);
-                }
-                Element::Subsubheading(text) => {
-                    let _ = writeln!(&mut result, "<h3>{}</h3>", text);
-                }
-                Element::UnorderedList(list) => {
-                    result += "<ul>\n";
-
-                    for item in list {
-                        let _ = writeln!(&mut result, "<li>{}</li>", item);
-                        result += "<p></p>\n";
-                    }
-
-                    result += "</ul>\n";
-                }
-                Element::BlockQuote(text) => {
-                    let _ = writeln!(&mut result, "<blockquote>{}</blockquote>", text);
-                }
-                Element::Preformatted(text) => {
-                    let _ = writeln!(&mut result, "<pre>{}</pre>", text);
-                }
-            }
-            result += "<p></p>\n";
-        }
-
-        result
     }
 }

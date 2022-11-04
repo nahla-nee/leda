@@ -11,9 +11,7 @@
 //!
 //! let url = String::from("gemini://gemini.circumlunar.space/");
 //!
-//! let mut client = gemini::Client::builder()
-//!     .timeout(Some(Duration::from_secs(5)))
-//!     .build()
+//! let mut client = gemini::Client::with_timeout(Some(Duration::from_secs(5)))
 //!     .expect("Failed to create gemini client");
 //!
 //! let response = client.request(url)
@@ -34,12 +32,8 @@
 //!
 //! let body = std::str::from_utf8(&body)
 //!     .expect("Failed to parse body as utf8");
-//! let html = Gemtext::new(body)
-//!     .expect("Failed to parse body as gemtext")
-//!     .to_html();
 //!
 //! println!("raw body: \n{}\n", body);
-//! println!("html body: \n{}\n", html);
 //! ```
 
 pub mod gemini;
@@ -53,9 +47,7 @@ mod tests {
     fn full_test() {
         let url = String::from("gemini://gemini.circumlunar.space/");
 
-        let mut client = gemini::Client::builder()
-            .timeout(Some(Duration::from_secs(5)))
-            .build()
+        let mut client = gemini::Client::with_timeout(Some(Duration::from_secs(5)))
             .expect("Failed to create gemini client");
 
         let response = client.request(url).expect("Failed to retrieve gemini page");
@@ -73,11 +65,7 @@ mod tests {
         };
 
         let body = std::str::from_utf8(body).expect("Failed to parse body as utf8");
-        let html = Gemtext::new(body)
-            .expect("Failed to parse body as gemtext")
-            .to_html();
-
+        assert!(Gemtext::new(body).is_ok());
         println!("body:\n{}\n", body);
-        println!("html:\n{}\n", html);
     }
 }
