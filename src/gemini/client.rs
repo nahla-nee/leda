@@ -3,9 +3,9 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::time::Duration;
 
-use super::Error;
 use super::header::Header;
 use super::response::Response;
+use super::Error;
 
 use rustls::client::ServerCertVerifier;
 use url;
@@ -51,15 +51,15 @@ impl Client {
     }
 
     /// Creates a client that can be used to make gemini requests with a timeout
-    /// 
+    ///
     /// # Example
     /// ```
     /// use leda::gemini::Client;
     /// use std::time::Duration;
-    /// 
+    ///
     /// let client = Client::with_timeout(Some(Duration::new(5, 0)));
     /// ```
-    /// 
+    ///
     /// Will return a [`Error::TLSClient`] if creating a TLS connector failed.
     pub fn with_timeout(timeout: Option<Duration>) -> Result<Client, Error> {
         let tls_config = Arc::new(
