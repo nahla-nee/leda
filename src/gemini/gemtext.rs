@@ -1,5 +1,3 @@
-use core::slice;
-
 use super::Error;
 
 /// Represents a gemtext document by element, line by line.
