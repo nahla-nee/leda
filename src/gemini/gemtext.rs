@@ -22,7 +22,7 @@ pub enum Element {
     /// Sub-sub-header
     Subsubheading(String),
     /// An unoredered list item, these will appear in the order they showed up in.
-    UnorderedListItem(String),
+    UnorderedList(Vec<String>),
     /// A block quote
     BlockQuote(String),
     /// The first element is the alt text, the second element is the preformatted text
@@ -45,7 +45,7 @@ impl<'a> Gemtext {
     /// let expected_result = [
     ///                        gemtext::Element::Heading(String::from("Example gemtext header")),
     ///                        gemtext::Element::Text(String::from("I'm a paragraph!")),
-    ///                        gemtext::Element::Link(String::from("gemini homepage link"), String::from("gemini://gemini.circumlunar.space/"))
+    ///                        gemtext::Element::Link(String::from("gemini://gemini.circumlunar.space/"), String::from("gemini homepage link"))
     ///                       ];
     /// for (real, expected) in parsed_doc.elements.iter().zip(expected_result.iter()) {
     ///     assert_eq!(real, expected);
@@ -90,7 +90,21 @@ impl<'a> Gemtext {
                 let text = line.trim_start();
                 elements.push(Element::Heading(text.to_string()));
             } else if let Some(line) = line.strip_prefix('*') {
-                elements.push(Element::UnorderedListItem(line.to_string()));
+                let mut list = Vec::new();
+
+                list.push(line.to_string());
+
+                // Can't use for loop here because we'd have two mut references.
+                while let Some(line) = lines.peek() {
+                    if let Some(line) = line.strip_prefix('*') {
+                        list.push(line.to_string());
+                        lines.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                elements.push(Element::UnorderedList(list));
             } else if let Some(line) = line.strip_prefix('>') {
                 elements.push(Element::BlockQuote(line.to_string()));
             } else if let Some(line) = line.strip_prefix("```") {
