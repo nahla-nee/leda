@@ -1,14 +1,14 @@
 use super::Error;
 
 /// Represents a gemtext document by element, line by line.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Gemtext {
     /// List of elements.
     pub elements: Vec<Element>,
 }
 
 /// Represents the varying elements a gemtext document can have.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Element {
     /// Text without any specific formatting, to be treated like a paragraph
     Text(String),
@@ -39,13 +39,14 @@ impl<'a> Gemtext {
     ///
     /// let example_doc = "# Example gemtext header\n\
     ///                    I'm a paragraph!\n\
-    ///                    => gemini://gemini.circumlunar.space/ gemini homepage link";
+    ///                    =>gemini://gemini.circumlunar.space/ gemini homepage link";
     /// let parsed_doc = Gemtext::new(example_doc)
     ///     .expect("Failed to parse gemtext document");
+    /// // Notice that the space between a format specifier and the text it specifies matters!
     /// let expected_result = [
-    ///                        gemtext::Element::Heading(String::from("Example gemtext header")),
-    ///                        gemtext::Element::Text(String::from("I'm a paragraph!")),
-    ///                        gemtext::Element::Link(String::from("gemini://gemini.circumlunar.space/"), String::from("gemini homepage link"))
+    ///                         gemtext::Element::Heading(String::from(" Example gemtext header")),
+    ///                         gemtext::Element::Text(String::from("I'm a paragraph!")),
+    ///                         gemtext::Element::Link(String::from("gemini://gemini.circumlunar.space/"), String::from("gemini homepage link"))
     ///                       ];
     /// for (real, expected) in parsed_doc.elements.iter().zip(expected_result.iter()) {
     ///     assert_eq!(real, expected);
@@ -58,8 +59,11 @@ impl<'a> Gemtext {
     pub fn new(input: &'a str) -> Result<Gemtext, Error> {
         let mut elements = Vec::with_capacity(input.lines().count());
 
-        let mut lines = input.lines().peekable();
-        for (index, line) in input.lines().enumerate() {
+        // we have to de-sugar what would be a for loop into a while loop
+        // because of how we parse 
+        println!("INPUT:\n{}", input);
+        let mut lines = input.lines().enumerate().peekable();
+        while let Some((index, line)) = lines.next() {
             if let Some(line) = line.strip_prefix("=>") {
                 let text = line.trim_start();
                 if text.is_empty() {
@@ -76,7 +80,7 @@ impl<'a> Gemtext {
                     // get rid of the first space character, if there's more space then its part of
                     // how the human readable text is formatted.
                     let split = text.split_at(index+1);
-                    (split.0.trim_end(), split.1)
+                    (split.0.trim(), split.1)
                 } else {
                     (text, text)
                 };
@@ -87,15 +91,13 @@ impl<'a> Gemtext {
             } else if let Some(line) = line.strip_prefix("##") {
                 elements.push(Element::Subheading(line.to_string()));
             } else if let Some(line) = line.strip_prefix('#') {
-                let text = line.trim_start();
-                elements.push(Element::Heading(text.to_string()));
+                elements.push(Element::Heading(line.to_string()));
             } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
                 list.push(line.to_string());
 
-                // Can't use for loop here because we'd have two mut references.
-                while let Some(line) = lines.peek() {
+                while let Some((_idx, line)) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
                         list.push(line.to_string());
                         lines.next();
@@ -111,12 +113,15 @@ impl<'a> Gemtext {
                 let alt_text = line.to_string();
                 let mut preformatted_block = String::new();
 
-                while let Some(line) = lines.peek() {
+                while let Some((_idx, line)) = lines.peek() {
                     if let None = line.strip_prefix("```") {
                         preformatted_block += line;
+                        preformatted_block += "\n";
                         lines.next();
                     }
                     else {
+                        // skip the ending ```
+                        lines.next();
                         break;
                     }
                 }
