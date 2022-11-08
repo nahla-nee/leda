@@ -44,7 +44,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn full_test() {
+    fn request_test() {
         let url = String::from("gemini://gemini.circumlunar.space/");
 
         let mut client = gemini::Client::with_timeout(Some(Duration::from_secs(5)))
@@ -67,5 +67,40 @@ mod tests {
         let body = std::str::from_utf8(body).expect("Failed to parse body as utf8");
         assert!(Gemtext::new(body).is_ok());
         println!("body:\n{}\n", body);
+    }
+
+    #[test]
+    fn gemtext_parse_test() {
+        let gemtext_src = "paragraph\n\
+            => gemini:://gemini.circumlunar.space/ link test\n\
+            # Heading\n\
+            ## Sub-heading\n\
+            ### Sub-sub-heading\n\
+            *list\n\
+            *example\n\
+            > blockquote\n\
+            ```\n\
+            ___________________________________\n\
+            |                                 |\n\
+            | This is some pre formatted text |\n\
+            |_________________________________|\n\
+            ```";
+        let expected_parse = [
+            gemini::gemtext::Element::Text("paragraph".to_string()),
+            gemini::gemtext::Element::Link("gemini:://gemini.circumlunar.space/".to_string(), "link test".to_string()),
+            gemini::gemtext::Element::Heading(" Heading".to_string()),
+            gemini::gemtext::Element::Subheading(" Sub-heading".to_string()),
+            gemini::gemtext::Element::Subsubheading(" Sub-sub-heading".to_string()),
+            gemini::gemtext::Element::UnorderedList(vec!["list".to_string(), "example".to_string()]),
+            gemini::gemtext::Element::BlockQuote(" blockquote".to_string()),
+            gemini::gemtext::Element::Preformatted("".to_string(), "___________________________________\n\
+                                                                    |                                 |\n\
+                                                                    | This is some pre formatted text |\n\
+                                                                    |_________________________________|\n".to_string())
+        ];
+
+        let result = gemini::Gemtext::new(gemtext_src)
+            .expect("Failed to parse gemtext_src");
+        assert_eq!(result.elements, expected_parse);
     }
 }
