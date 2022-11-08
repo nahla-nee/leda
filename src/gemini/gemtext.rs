@@ -61,7 +61,6 @@ impl<'a> Gemtext {
 
         // we have to de-sugar what would be a for loop into a while loop
         // because of how we parse 
-        println!("INPUT:\n{}", input);
         let mut lines = input.lines().enumerate().peekable();
         while let Some((index, line)) = lines.next() {
             if let Some(line) = line.strip_prefix("=>") {
