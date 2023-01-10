@@ -93,6 +93,54 @@ impl Client {
         self.timeout = timeout;
     }
 
+    fn parse_url(url: String) -> Result<(String, String), Error> {
+        let url_parsed = url::Url::parse(&url).map_err(Error::UrlParse)?;
+        // We can't use ok_or_else here because that would consume `url` regardless of whether
+        // the value is Some or None, and we use url later so it must not be moved.
+        let host_str = match url_parsed.host_str() {
+            Some(str) => str,
+            None => return Err(Error::UrlNoHost(url)),
+        };
+        let port = url_parsed.port().unwrap_or(1965);
+
+        Ok((format!("{}:{}", host_str, port), host_str.to_string()))
+    }
+
+    fn parse_response(response: &Vec<u8>) -> Result<Response, Error> {
+        // The Gemini protocol specifies that the response must have a header, and optionally a body
+        // which are separated by <CR><LF>. <CR><LF> must be there regardless of if a
+        // body exists.
+        let header_cutoff = {
+            let mut cutoff = None;
+            for i in 0..(response.len() - 1) {
+                if &response[i..=(i + 1)] == "\r\n".as_bytes() {
+                    cutoff = Some(i + 2);
+                    break;
+                }
+            }
+
+            cutoff
+        }
+        .ok_or_else(|| {
+            Error::HeaderFormat(String::from(
+                "There must be at least 1 <CR><LF> at the end of the header, but such a \
+            sequence was not found.",
+            ))
+        })?;
+
+        let (header, body) = response.split_at(header_cutoff);
+        let header = String::from_utf8_lossy(header).to_string();
+        // Even if a body doesn't exist, rust will return an empty string for the body, we should
+        // check then if a body does or doesn't exist by checking if the body string is empty.
+        let body = if body.is_empty() {
+            None
+        } else {
+            Some(body.to_vec())
+        };
+
+        Ok(Response::new(Header::try_from(header)?, body))
+    }
+
     /// Gets the page at `url`.
     ///
     /// The given url must start with the scheme `"gemini://"`
@@ -110,27 +158,9 @@ impl Client {
     ///
     /// Will return an [`Error`] if there was a problem with parsing the url, communicating with
     /// the server, or with parsing the servers response.
-    pub fn request(&mut self, url: String) -> Result<Response, Error> {
-        let (header, body) = self.get_data(url)?;
-        let header = Header::try_from(header)?;
-
-        Ok(Response::new(header, body))
-    }
-
-    fn get_data(&mut self, mut url: String) -> Result<(String, Option<Vec<u8>>), Error> {
+    pub fn request(&mut self, mut url: String) -> Result<Response, Error> {
         // Get the proper host string to connect to from the URL.
-        let (host, server_name) = {
-            let url_parsed = url::Url::parse(&url).map_err(Error::UrlParse)?;
-            // We can't use ok_or_else here because that would consume `url` regardless of whether
-            // the value is Some or None, and we use url later so it must not be moved.
-            let host_str = match url_parsed.host_str() {
-                Some(str) => str,
-                None => return Err(Error::UrlNoHost(url)),
-            };
-            let port = url_parsed.port().unwrap_or(1965);
-
-            (format!("{}:{}", host_str, port), host_str.to_string())
-        };
+        let (host, server_name) = Self::parse_url(url.clone())?;
 
         // Connect to the server and establish a TLS connection.
         let rustls_server_name = server_name.as_str().try_into().unwrap();
@@ -180,39 +210,37 @@ impl Client {
         // but we have no idea what the body is.
         let mut response = Vec::new();
         tls.read_to_end(&mut response)
-            .map_err(|e| Error::StreamIO("Failed to read resposne from server", e))?;
+            .map_err(|e| Error::StreamIO("Failed to read response from server", e))?;
 
-        // The Gemini protocol specifies that the response must have a header, and optionally a body
-        // which are separated by <CR><LF>. <CR><LF> must be there regardless of if a
-        // body exists.
-        let header_cutoff = {
-            let mut cutoff = None;
-            for i in 0..(response.len() - 1) {
-                if &response[i..=(i + 1)] == "\r\n".as_bytes() {
-                    cutoff = Some(i + 2);
-                    break;
-                }
-            }
+        Ok(Self::parse_response(&response)?)
+    }
 
-            cutoff
+    #[cfg(feature = "async")]
+    pub async fn async_request(&mut self, mut url: String) -> Result<Response, Error> {
+        use async_std::net::TcpStream;
+        use async_std::io::{WriteExt, ReadExt};
+        use async_rustls::TlsConnector;
+        use rustls::ServerName;
+
+        let (host, server_name) = Self::parse_url(url.clone())?;
+        let server_name = ServerName::try_from(server_name.as_str()).unwrap();
+        // We can't respect timeout here, doesn't work in async
+        let stream = TcpStream::connect(host.clone()).await
+            .map_err(|e| Error::TCPConnect(e, (&host).clone()))?;
+        let connector = TlsConnector::from(self.tls_config.clone());
+        let mut stream = connector.connect(server_name, stream).await
+            .map_err(|e| Error::StreamIO("Connector call failed after creating stream", e))?;
+
+        if !url.ends_with("\r\n") {
+            url += "\r\n";
         }
-        .ok_or_else(|| {
-            Error::HeaderFormat(String::from(
-                "There must be at least 1 <CR><LF> at the end of the header, but such a \
-            sequence was not found.",
-            ))
-        })?;
+        stream.write(url.as_bytes()).await
+            .map_err(|e| Error::StreamIO("Failed to send request to server", e))?;
 
-        let (header, body) = response.split_at(header_cutoff);
-        let header = String::from_utf8_lossy(header).to_string();
-        // Even if a body doesn't exist, rust will return an empty string for the body, we should
-        // check then if a body does or doesn't exist by checking if the body string is empty.
-        let body = if body.is_empty() {
-            None
-        } else {
-            Some(body.to_vec())
-        };
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).await
+            .map_err(|e| Error::StreamIO("Failed to read response from server", e))?;
 
-        Ok((header, body))
+        Ok(Self::parse_response(&response)?)
     }
 }
