@@ -1,7 +1,7 @@
 # Leda
 
 A crate that implements the client logic for several small internet protocols. Currently only
-supports gemini but with plans to support other protocols such as finger, and gopher.
+supports gemini but with plans to support other protocols in the future.
 
 ## Get started
 
