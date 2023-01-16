@@ -94,7 +94,7 @@ impl<'a> Gemtext {
             } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
-                list.push(line.to_string());
+                list.push(line.trim().to_string());
 
                 while let Some((_idx, line)) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
