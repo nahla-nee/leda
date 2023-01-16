@@ -79,18 +79,18 @@ impl<'a> Gemtext {
                     // get rid of the first space character, if there's more space then its part of
                     // how the human readable text is formatted.
                     let split = text.split_at(index+1);
-                    (split.0.trim(), split.1)
+                    (split.0.trim(), split.1.trim())
                 } else {
                     (text, text)
                 };
 
                 elements.push(Element::Link(url.to_string(), text.to_string()));
             } else if let Some(line) = line.strip_prefix("###") {
-                elements.push(Element::Subsubheading(line.to_string()));
+                elements.push(Element::Subsubheading(line.trim().to_string()));
             } else if let Some(line) = line.strip_prefix("##") {
-                elements.push(Element::Subheading(line.to_string()));
+                elements.push(Element::Subheading(line.trim().to_string()));
             } else if let Some(line) = line.strip_prefix('#') {
-                elements.push(Element::Heading(line.to_string()));
+                elements.push(Element::Heading(line.trim().to_string()));
             } else if let Some(line) = line.strip_prefix('*') {
                 let mut list = Vec::new();
 
@@ -98,7 +98,7 @@ impl<'a> Gemtext {
 
                 while let Some((_idx, line)) = lines.peek() {
                     if let Some(line) = line.strip_prefix('*') {
-                        list.push(line.to_string());
+                        list.push(line.trim().to_string());
                         lines.next();
                     } else {
                         break;
@@ -107,7 +107,7 @@ impl<'a> Gemtext {
 
                 elements.push(Element::UnorderedList(list));
             } else if let Some(line) = line.strip_prefix('>') {
-                elements.push(Element::BlockQuote(line.to_string()));
+                elements.push(Element::BlockQuote(line.trim().to_string()));
             } else if let Some(line) = line.strip_prefix("```") {
                 let alt_text = line.to_string();
                 let mut preformatted_block = String::new();
