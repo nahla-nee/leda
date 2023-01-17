@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::Error;
 
 /// Represents the header sent back from a server's response.
@@ -11,7 +13,7 @@ pub struct Header {
 }
 
 /// Represents a status code from a server's response header.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum StatusCode {
     Input(InputCode),
     Success,
@@ -22,21 +24,21 @@ pub enum StatusCode {
 }
 
 /// Represents the subtypes of input a server can ask for.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum InputCode {
     Input,
     Sensitive,
 }
 
 /// Represents the subtypes of redirects a server can ask for.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum RedirectCode {
     Temporary,
     Permanent,
 }
 
 /// Represents the subtypes of temporary failure a server can have.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum FailTemporaryCode {
     Temporary,
     ServerUnavailable,
@@ -45,7 +47,7 @@ pub enum FailTemporaryCode {
     SlowDown,
 }
 /// Represents the subtypes of permanent failure a server can have.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum FailPermanentCode {
     Permanent,
     NotFound,
@@ -55,7 +57,7 @@ pub enum FailPermanentCode {
 }
 
 /// Represents the subtypes of certificate failure a server can have.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum CertFailCode {
     CertRequired,
     CertNotAuthorized,
@@ -110,7 +112,7 @@ impl TryFrom<String> for Header {
             )));
         }
 
-        let status = StatusCode::from_string(status)?;
+        let status = StatusCode::from_str(status)?;
 
         Ok(Header {
             status,
@@ -120,13 +122,40 @@ impl TryFrom<String> for Header {
 }
 
 impl StatusCode {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            StatusCode::Input(InputCode::Input) => "10",
+            StatusCode::Input(InputCode::Sensitive) => "11",
+            StatusCode::Success => "20",
+            StatusCode::Redirect(RedirectCode::Temporary) => "30",
+            StatusCode::Redirect(RedirectCode::Permanent) => "31",
+            StatusCode::FailTemporary(FailTemporaryCode::Temporary) => "40",
+            StatusCode::FailTemporary(FailTemporaryCode::ServerUnavailable) => "41",
+            StatusCode::FailTemporary(FailTemporaryCode::CGIError) => "42",
+            StatusCode::FailTemporary(FailTemporaryCode::ProxyError) => "43",
+            StatusCode::FailTemporary(FailTemporaryCode::SlowDown) => "44",
+            StatusCode::FailPermanent(FailPermanentCode::Permanent) => "50",
+            StatusCode::FailPermanent(FailPermanentCode::NotFound) => "51",
+            StatusCode::FailPermanent(FailPermanentCode::Gone) => "52",
+            StatusCode::FailPermanent(FailPermanentCode::ProxyRefused) => "53",
+            StatusCode::FailPermanent(FailPermanentCode::BadRequest) => "59",
+            StatusCode::CertFail(CertFailCode::CertRequired) => "60",
+            StatusCode::CertFail(CertFailCode::CertNotAuthorized) => "61",
+            StatusCode::CertFail(CertFailCode::CertNotValid) => "62",
+        }
+    }
+}
+
+impl FromStr for StatusCode {
+    type Err = Error;
+
     /// parses a given string and returns its equivalent [`StatusCode`]
     ///
     /// # Errors
     ///
     /// Returns an error if the given string wasn't an exact match to any status code.
-    fn from_string(input: &str) -> Result<StatusCode, Error> {
-        Ok(match input {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "10" => StatusCode::Input(InputCode::Input),
             "11" => StatusCode::Input(InputCode::Sensitive),
             "20" => StatusCode::Success,
@@ -148,7 +177,7 @@ impl StatusCode {
             _ => {
                 return Err(Error::HeaderFormat(format!(
                     "Header status code ({}) was not recognized",
-                    input
+                    s
                 )))
             }
         })
@@ -157,28 +186,37 @@ impl StatusCode {
 
 impl std::fmt::Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let val = match self {
-            StatusCode::Input(InputCode::Input) => "10",
-            StatusCode::Input(InputCode::Sensitive) => "11",
-            StatusCode::Success => "20",
-            StatusCode::Redirect(RedirectCode::Temporary) => "30",
-            StatusCode::Redirect(RedirectCode::Permanent) => "31",
-            StatusCode::FailTemporary(FailTemporaryCode::Temporary) => "40",
-            StatusCode::FailTemporary(FailTemporaryCode::ServerUnavailable) => "41",
-            StatusCode::FailTemporary(FailTemporaryCode::CGIError) => "42",
-            StatusCode::FailTemporary(FailTemporaryCode::ProxyError) => "43",
-            StatusCode::FailTemporary(FailTemporaryCode::SlowDown) => "44",
-            StatusCode::FailPermanent(FailPermanentCode::Permanent) => "50",
-            StatusCode::FailPermanent(FailPermanentCode::NotFound) => "51",
-            StatusCode::FailPermanent(FailPermanentCode::Gone) => "52",
-            StatusCode::FailPermanent(FailPermanentCode::ProxyRefused) => "53",
-            StatusCode::FailPermanent(FailPermanentCode::BadRequest) => "59",
-            StatusCode::CertFail(CertFailCode::CertRequired) => "60",
-            StatusCode::CertFail(CertFailCode::CertNotAuthorized) => "61",
-            StatusCode::CertFail(CertFailCode::CertNotValid) => "62",
-        };
+        write!(f, "{}", self.to_str())
+    }
+}
 
-        write!(f, "{}", val)
+impl std::fmt::Display for InputCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", StatusCode::Input(*self))
+    }
+}
+
+impl std::fmt::Display for RedirectCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", StatusCode::Redirect(*self))
+    }
+}
+
+impl std::fmt::Display for FailTemporaryCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", StatusCode::FailTemporary(*self))
+    }
+}
+
+impl std::fmt::Display for FailPermanentCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", StatusCode::FailPermanent(*self))
+    }
+}
+
+impl std::fmt::Display for CertFailCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", StatusCode::CertFail(*self))
     }
 }
 
